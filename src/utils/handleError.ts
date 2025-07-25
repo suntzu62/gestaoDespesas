@@ -20,9 +20,22 @@ export function handleAuthError(error: AuthError | Error): ErrorResponse {
         return { message: 'Senha muito fraca. Use pelo menos 8 caracteres com letras, números e símbolos', code: error.code };
       case 'same_password':
         return { message: 'A nova senha deve ser diferente da atual', code: error.code };
+      case 'database_error':
+        return { message: 'Erro na configuração do banco de dados. Verifique as variáveis de ambiente.', code: error.code };
+      case 'invalid_request':
+        return { message: 'Dados inválidos. Verifique os campos obrigatórios.', code: error.code };
       default:
         return { message: error.message || 'Erro de autenticação', code: error.code };
     }
+  }
+  
+  // Handle specific database errors
+  if (error.message?.includes('Missing Supabase environment variables')) {
+    return { message: 'Configuração do banco não encontrada. Entre em contato com o suporte.', code: 'config_error' };
+  }
+  
+  if (error.message?.includes('profiles')) {
+    return { message: 'Erro ao criar perfil do usuário. Tente novamente.', code: 'profile_error' };
   }
   
   return { message: error.message || 'Erro desconhecido' };

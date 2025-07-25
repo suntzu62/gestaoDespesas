@@ -21,6 +21,11 @@ export function SignUp() {
     setError('');
 
     try {
+      // Validate environment variables
+      if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+        throw new Error('Missing Supabase environment variables');
+      }
+
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
@@ -41,6 +46,7 @@ export function SignUp() {
         navigate('/dashboard');
       }
     } catch (err: any) {
+      console.error('SignUp Error:', err);
       const errorResponse = handleAuthError(err);
       setError(errorResponse.message);
     } finally {
