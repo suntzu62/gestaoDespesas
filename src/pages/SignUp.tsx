@@ -6,10 +6,12 @@ import { SignUpData } from '../lib/validations';
 import { handleAuthError } from '../utils/handleError';
 import { AuthForm } from '../components/AuthForm';
 import { GoogleAuthButton } from '../components/GoogleAuthButton';
+import { AppleAuthButton } from '../components/AppleAuthButton';
 
 export function SignUp() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
@@ -63,6 +65,26 @@ export function SignUp() {
       const errorResponse = handleAuthError(err);
       setError(errorResponse.message);
       setGoogleLoading(false);
+    }
+  };
+
+  const handleAppleSignIn = async () => {
+    setAppleLoading(true);
+    setError('');
+
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'apple',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (error) throw error;
+    } catch (err: any) {
+      const errorResponse = handleAuthError(err);
+      setError(errorResponse.message);
+      setAppleLoading(false);
     }
   };
 
@@ -128,6 +150,12 @@ export function SignUp() {
               mode="signup"
               onClick={handleGoogleSignIn}
               loading={googleLoading}
+            />
+
+            <AppleAuthButton
+              mode="signup"
+              onClick={handleAppleSignIn}
+              loading={appleLoading}
             />
 
             <div className="text-center">

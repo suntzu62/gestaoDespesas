@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
-import { supabase, AuthUser } from '../lib/supabase';
+import { supabase, AuthUser, UserRole } from '../lib/supabase';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -8,6 +8,7 @@ interface AuthContextType {
   loading: boolean;
   signOut: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  hasRole: (role: UserRole | UserRole[]) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -16,6 +17,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const hasRole = (requiredRoles: UserRole | UserRole[]): boolean => {
+    if (!user?.role) return false;
+    
+    const rolesArray = Array.isArray(requiredRoles) ? requiredRoles : [requiredRoles];
+    return rolesArray.includes(user.role);
+  };
 
   const refreshUser = async () => {
     try {
@@ -36,6 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             email: profile.email,
             name: profile.name,
             avatar_url: profile.avatar_url,
+            role: profile.role as UserRole,
           });
         } else {
           // Fallback to auth user data
@@ -44,6 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             email: session.user.email || '',
             name: session.user.user_metadata?.full_name || session.user.email || '',
             avatar_url: session.user.user_metadata?.avatar_url,
+            role: 'collaborator' as UserRole,
           });
         }
       } else {
@@ -85,7 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signOut, refreshUser }}>
+    <AuthContext.Provider value={{ user, session, loading, signOut, refreshUser, hasRole }}>
       {children}
     </AuthContext.Provider>
   );

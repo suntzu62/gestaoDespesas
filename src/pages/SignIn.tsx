@@ -6,10 +6,12 @@ import { SignInData } from '../lib/validations';
 import { handleAuthError } from '../utils/handleError';
 import { AuthForm } from '../components/AuthForm';
 import { GoogleAuthButton } from '../components/GoogleAuthButton';
+import { AppleAuthButton } from '../components/AppleAuthButton';
 
 export function SignIn() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const navigate = useNavigate();
 
@@ -56,6 +58,26 @@ export function SignIn() {
     }
   };
 
+  const handleAppleSignIn = async () => {
+    setAppleLoading(true);
+    setError('');
+
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'apple',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (error) throw error;
+    } catch (err: any) {
+      const errorResponse = handleAuthError(err);
+      setError(errorResponse.message);
+      setAppleLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
@@ -96,6 +118,12 @@ export function SignIn() {
               loading={googleLoading}
             />
 
+            <AppleAuthButton
+              mode="signin"
+              onClick={handleAppleSignIn}
+              loading={appleLoading}
+            />
+
             <div className="text-center">
               <span className="text-gray-600">Não tem uma conta? </span>
               <Link
@@ -108,7 +136,7 @@ export function SignIn() {
 
             <div className="text-center">
               <Link
-                to="/forgot-password"
+                to="/forgot-password" 
                 className="text-sm text-gray-500 hover:text-gray-700"
               >
                 Esqueceu sua senha?

@@ -3,6 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { Loader2, TrendingUp } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
+import { UserRole } from '../lib/supabase';
+
+const getRoleBasedRedirect = (role: UserRole): string => {
+  switch (role) {
+    case 'owner':
+    case 'admin':
+      return '/admin-dashboard';
+    case 'collaborator':
+    default:
+      return '/dashboard';
+  }
+};
+
 export function AuthCallback() {
   const navigate = useNavigate();
   const [error, setError] = useState<string>('');
@@ -15,8 +28,17 @@ export function AuthCallback() {
         if (error) throw error;
 
         if (data.session) {
-          // User is authenticated, redirect to dashboard
-          navigate('/dashboard', { replace: true });
+          // Get user profile to determine role-based redirect
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', data.session.user.id)
+            .single();
+
+          const userRole = (profile?.role as UserRole) || 'collaborator';
+          const redirectTo = getRoleBasedRedirect(userRole);
+          
+          navigate(redirectTo, { replace: true });
         } else {
           // No session, redirect to sign in
           navigate('/signin', { replace: true });

@@ -12,8 +12,14 @@ export function handleAuthError(error: AuthError | Error): ErrorResponse {
         return { message: 'Este email já está cadastrado', code: error.code };
       case 'invalid_credentials':
         return { message: 'Email ou senha incorretos', code: error.code };
+      case 'email_not_confirmed':
+        return { message: 'Por favor, confirme seu email antes de fazer login', code: error.code };
       case 'signup_disabled':
         return { message: 'Cadastro temporariamente desabilitado', code: error.code };
+      case 'weak_password':
+        return { message: 'Senha muito fraca. Use pelo menos 8 caracteres com letras, números e símbolos', code: error.code };
+      case 'same_password':
+        return { message: 'A nova senha deve ser diferente da atual', code: error.code };
       default:
         return { message: error.message || 'Erro de autenticação', code: error.code };
     }

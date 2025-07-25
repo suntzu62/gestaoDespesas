@@ -1,14 +1,21 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { UserRole } from '../lib/supabase';
 import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
+  allowedRoles?: UserRole[];
+  redirectTo?: string;
 }
 
-export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, loading } = useAuth();
+export function ProtectedRoute({ 
+  children, 
+  allowedRoles, 
+  redirectTo = '/access-denied' 
+}: ProtectedRouteProps) {
+  const { user, loading, hasRole } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -25,6 +32,11 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   if (!user) {
     // Redirect to sign in page with return url
     return <Navigate to="/signin" state={{ from: location }} replace />;
+  }
+
+  // Check role-based access
+  if (allowedRoles && !hasRole(allowedRoles)) {
+    return <Navigate to={redirectTo} replace />;
   }
 
   return <>{children}</>;

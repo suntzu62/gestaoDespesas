@@ -19,9 +19,12 @@ export interface Profile {
   updated_at: string;
 }
 
+export type UserRole = 'collaborator' | 'admin' | 'owner';
+
 export interface AuthUser {
   id: string;
   email: string;
   name: string;
   avatar_url?: string;
+  role: UserRole;
 }
