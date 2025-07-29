@@ -1,4 +1,4 @@
-```sql
+sql
 -- Criar enum user_role se não existir
 DO $$ BEGIN
   CREATE TYPE user_role AS ENUM ('collaborator', 'admin', 'owner');
@@ -90,4 +90,3 @@ CREATE POLICY "Admins can update user roles"
       WHERE id = auth.uid()
     ) IN ('admin', 'owner')
   );
-```
