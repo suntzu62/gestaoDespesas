@@ -1,4 +1,4 @@
-```sql
+sql
 -- Desabilitar RLS temporariamente para garantir que as políticas sejam recriadas corretamente
 ALTER TABLE public.profiles DISABLE ROW LEVEL SECURITY;
 
@@ -75,4 +75,3 @@ CREATE POLICY "Admins can update user roles"
 
 -- Opcional: Conceder permissão de INSERT para a função handle_new_user se necessário (geralmente não é, pois SECURITY DEFINER já dá privilégios)
 -- GRANT INSERT ON public.profiles TO supabase_auth_admin;
-```
