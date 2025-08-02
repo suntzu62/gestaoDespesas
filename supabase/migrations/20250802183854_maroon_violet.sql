@@ -1,4 +1,4 @@
-```sql
+
 -- Drop existing objects to ensure a clean slate
 DROP TABLE IF EXISTS public.profiles CASCADE;
 DROP TYPE IF EXISTS public.user_role;
@@ -96,4 +96,3 @@ CREATE POLICY "Admins can update user roles"
       WHERE id = auth.uid()
     ) IN ('admin', 'owner')
   );
-```
