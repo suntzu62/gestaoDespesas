@@ -40,12 +40,12 @@ export function UpdatePassword() {
         
         if (error) throw error;
         
-        const { data, error } = await supabase.auth.getSession();
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
         
-        if (error) throw error;
+        if (sessionError) throw sessionError;
         
         // Check if we have a valid session for password recovery
-        if (data.session && data.session.user) {
+        if (sessionData.session && sessionData.session.user) {
           setValidToken(true);
         } else {
           setValidToken(false);
