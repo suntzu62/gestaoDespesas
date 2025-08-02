@@ -142,6 +142,11 @@ export function AuthForm({ mode, onSubmit, loading = false, error }: AuthFormPro
               </div>
               <span className="text-xs text-gray-600 min-w-16">{passwordStrength.label}</span>
             </div>
+            {isUpdatePassword && passwordStrength.score < 3 && (
+              <p className="text-xs text-orange-600 mt-1">
+                Recomendamos uma senha mais forte para maior segurança
+              </p>
+            )}
           </div>
         )}
         

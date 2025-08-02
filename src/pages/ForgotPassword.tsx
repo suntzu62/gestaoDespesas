@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { TrendingUp, Mail, ArrowLeft, CheckCircle } from 'lucide-react';
+import { TrendingUp, Mail, ArrowLeft, CheckCircle, Loader2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { supabase } from '../lib/supabase';
@@ -15,6 +15,7 @@ export function ForgotPassword() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState(false);
+  const [countdown, setCountdown] = useState(0);
 
   const {
     register,
@@ -31,12 +32,24 @@ export function ForgotPassword() {
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
-        redirectTo: `${window.location.origin}/update-password`,
+        redirectTo: `${window.location.origin}/update-password?from=reset`,
       });
 
       if (error) throw error;
 
       setSuccess(true);
+      
+      // Start countdown to prevent spam
+      setCountdown(60);
+      const interval = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
     } catch (err: any) {
       const errorResponse = handleAuthError(err);
       setError(errorResponse.message);
@@ -45,6 +58,14 @@ export function ForgotPassword() {
     }
   };
 
+  const handleResendEmail = async () => {
+    if (countdown > 0) return;
+    
+    const email = getValues('email');
+    if (!email) return;
+    
+    await handleForgotPassword({ email });
+  };
   if (success) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -56,9 +77,36 @@ export function ForgotPassword() {
             <h2 className="text-3xl font-bold text-gray-900 mb-2">Email enviado!</h2>
             <p className="text-gray-600 mb-6">
               Enviamos um link para redefinir sua senha para <strong>{getValues('email')}</strong>. 
-              Verifique sua caixa de entrada e spam.
+              Verifique sua caixa de entrada e pasta de spam.
             </p>
-            <div className="space-y-4">
+            <div className="space-y-4 text-center">
+              <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-lg text-sm">
+                <strong>Não recebeu o email?</strong>
+                <ul className="mt-2 space-y-1 text-left">
+                  <li>• Verifique sua pasta de spam</li>
+                  <li>• Aguarde alguns minutos</li>
+                  <li>• Confirme se o email está correto</li>
+                </ul>
+              </div>
+              
+              <button
+                onClick={handleResendEmail}
+                disabled={countdown > 0}
+                className="inline-flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {countdown > 0 ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Reenviar em {countdown}s
+                  </>
+                ) : (
+                  <>
+                    <Mail className="w-4 h-4" />
+                    Reenviar email
+                  </>
+                )}
+              </button>
+              
               <Link
                 to="/signin"
                 className="inline-flex items-center gap-2 text-green-600 hover:text-green-700 font-medium"
@@ -126,6 +174,10 @@ export function ForgotPassword() {
               {loading && <Mail className="w-5 h-5 animate-spin" />}
               Enviar link de recuperação
             </button>
+            
+            <div className="text-sm text-gray-500 text-center">
+              Lembre-se de verificar sua pasta de spam caso não receba o email
+            </div>
           </form>
 
           <div className="mt-6 text-center">

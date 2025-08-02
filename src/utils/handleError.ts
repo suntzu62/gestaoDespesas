@@ -24,6 +24,14 @@ export function handleAuthError(error: AuthError | Error): ErrorResponse {
         return { message: 'Erro na configuração do banco de dados. Verifique as variáveis de ambiente.', code: error.code };
       case 'invalid_request':
         return { message: 'Dados inválidos. Verifique os campos obrigatórios.', code: error.code };
+      case 'email_not_found':
+        return { message: 'Email não encontrado. Verifique se você digitou corretamente.', code: error.code };
+      case 'too_many_requests':
+        return { message: 'Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.', code: error.code };
+      case 'recovery_token_expired':
+        return { message: 'Link de recuperação expirado. Solicite um novo link.', code: error.code };
+      case 'invalid_recovery_token':
+        return { message: 'Link de recuperação inválido. Solicite um novo link.', code: error.code };
       default:
         return { message: error.message || 'Erro de autenticação', code: error.code };
     }

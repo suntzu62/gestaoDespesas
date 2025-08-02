@@ -3,6 +3,7 @@ import { z } from 'zod';
 // Password strength validation
 const passwordSchema = z.string()
   .min(8, 'Senha deve ter pelo menos 8 caracteres')
+  .max(128, 'Senha muito longa (máximo 128 caracteres)')
   .regex(/[a-z]/, 'Senha deve conter pelo menos uma letra minúscula')
   .regex(/[A-Z]/, 'Senha deve conter pelo menos uma letra maiúscula')
   .regex(/[0-9]/, 'Senha deve conter pelo menos um número')
