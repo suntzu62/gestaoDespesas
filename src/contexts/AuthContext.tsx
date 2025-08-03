@@ -26,11 +26,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const refreshUser = async () => {
+    console.log('🔄 AuthContext: refreshUser called');
     try {
       const { data: { session } } = await supabase.auth.getSession();
+      console.log('📝 AuthContext: session from getSession:', session);
       setSession(session);
       
       if (session?.user) {
+        console.log('👤 AuthContext: user found in session:', session.user.id, session.user.email);
         // Get profile data from our profiles table
         const { data: profile } = await supabase
           .from('profiles')
@@ -38,7 +41,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .eq('id', session.user.id)
           .single();
 
+        console.log('📋 AuthContext: profile data from DB:', profile);
+
         if (profile) {
+          console.log('✅ AuthContext: setting user with profile data');
           setUser({
             id: profile.id,
             email: profile.email,
@@ -46,8 +52,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             avatar_url: profile.avatar_url,
             role: profile.role as UserRole,
           });
+          console.log('👤 AuthContext: user set:', {
+            id: profile.id,
+            email: profile.email,
+            name: profile.name,
+            role: profile.role
+          });
         } else {
           // Fallback to auth user data
+          console.log('⚠️ AuthContext: no profile found, using fallback user data');
           setUser({
             id: session.user.id,
             email: session.user.email || '',
@@ -57,10 +70,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           });
         }
       } else {
+        console.log('❌ AuthContext: no user in session, setting user to null');
         setUser(null);
       }
     } catch (error) {
       console.error('Error refreshing user:', error);
+      console.log('💥 AuthContext: error in refreshUser, setting user and session to null');
       setUser(null);
       setSession(null);
     }
@@ -79,14 +94,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('🔔 AuthContext: onAuthStateChange event:', event, 'session:', session);
         setSession(session);
         
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          console.log('🔐 AuthContext: SIGNED_IN or TOKEN_REFRESHED, calling refreshUser');
           await refreshUser();
         } else if (event === 'SIGNED_OUT') {
+          console.log('🚪 AuthContext: SIGNED_OUT, setting user to null');
           setUser(null);
         }
         
+        console.log('⏰ AuthContext: setting loading to false');
         setLoading(false);
       }
     );

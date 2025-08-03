@@ -18,7 +18,15 @@ export function ProtectedRoute({
   const { user, loading, hasRole } = useAuth();
   const location = useLocation();
 
+  console.log('🛡️ ProtectedRoute: checking access', {
+    loading,
+    user: user ? { id: user.id, email: user.email, role: user.role } : null,
+    allowedRoles,
+    currentPath: location.pathname
+  });
+
   if (loading) {
+    console.log('⏳ ProtectedRoute: still loading, showing spinner');
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 flex items-center justify-center">
         <div className="text-center">
@@ -30,14 +38,21 @@ export function ProtectedRoute({
   }
 
   if (!user) {
+    console.log('❌ ProtectedRoute: no user found, redirecting to signin');
     // Redirect to sign in page with return url
     return <Navigate to="/signin" state={{ from: location }} replace />;
   }
 
   // Check role-based access
   if (allowedRoles && !hasRole(allowedRoles)) {
+    console.log('🚫 ProtectedRoute: user role check failed', {
+      userRole: user.role,
+      allowedRoles,
+      hasRoleResult: hasRole(allowedRoles)
+    });
     return <Navigate to={redirectTo} replace />;
   }
 
+  console.log('✅ ProtectedRoute: access granted, rendering children');
   return <>{children}</>;
 }
