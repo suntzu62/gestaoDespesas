@@ -29,17 +29,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     console.log('🔄 AuthContext: refreshUser called');
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      console.log('📝 AuthContext: session from getSession:', session);
+      console.log('📝 AuthContext: session from getSession:', session?.user?.id || 'NO SESSION');
       setSession(session);
       
       if (session?.user) {
         console.log('👤 AuthContext: user found in session:', session.user.id, session.user.email);
+        
+        console.log('🔍 AuthContext: fetching profile from database...');
+        
         // Get profile data from our profiles table
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', session.user.id)
           .single();
+
+        if (profileError) {
+          console.error('💥 AuthContext: error fetching profile:', profileError);
+          console.log('⚠️ AuthContext: profile error, using fallback user data');
+          
+          // Set fallback user data even with profile error
+          setUser({
+            id: session.user.id,
+            email: session.user.email || '',
+            name: session.user.user_metadata?.full_name || session.user.email || '',
+            avatar_url: session.user.user_metadata?.avatar_url,
+            role: 'collaborator' as UserRole,
+          });
+          console.log('✅ AuthContext: fallback user set due to profile error');
+          return;
+        }
 
         console.log('📋 AuthContext: profile data from DB:', profile);
 
@@ -68,14 +87,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             avatar_url: session.user.user_metadata?.avatar_url,
             role: 'collaborator' as UserRole,
           });
+          console.log('✅ AuthContext: fallback user set - no profile found');
         }
       } else {
         console.log('❌ AuthContext: no user in session, setting user to null');
         setUser(null);
       }
     } catch (error) {
-      console.error('Error refreshing user:', error);
-      console.log('💥 AuthContext: error in refreshUser, setting user and session to null');
+      console.error('💥 AuthContext: critical error in refreshUser:', error);
+      
+      // Try to get session even if there was an error
+      try {
+        const { data: { session: fallbackSession } } = await supabase.auth.getSession();
+        if (fallbackSession?.user) {
+          console.log('🆘 AuthContext: using emergency fallback user setup');
+          setUser({
+            id: fallbackSession.user.id,
+            email: fallbackSession.user.email || '',
+            name: fallbackSession.user.user_metadata?.full_name || fallbackSession.user.email || '',
+            avatar_url: fallbackSession.user.user_metadata?.avatar_url,
+            role: 'collaborator' as UserRole,
+          });
+          setSession(fallbackSession);
+          console.log('✅ AuthContext: emergency fallback user set');
+          return;
+        }
+      } catch (fallbackError) {
+        console.error('💥💥 AuthContext: even fallback failed:', fallbackError);
+      }
+      
+      console.log('❌ AuthContext: all options exhausted, clearing user and session');
       setUser(null);
       setSession(null);
     }
