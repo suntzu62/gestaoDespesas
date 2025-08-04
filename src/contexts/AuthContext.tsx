@@ -27,6 +27,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshUser = async () => {
     console.log('🔄 AuthContext: refreshUser called');
+   
     try {
       const { data: { session } } = await supabase.auth.getSession();
       console.log('📝 AuthContext: session from getSession:', session?.user?.id || 'NO SESSION');
