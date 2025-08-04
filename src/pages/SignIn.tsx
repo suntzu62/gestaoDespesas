@@ -20,11 +20,6 @@ export function SignIn() {
     setError('');
 
     try {
-      // Validate environment variables
-      if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
-        throw new Error('Missing Supabase environment variables');
-      }
-
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
@@ -33,6 +28,7 @@ export function SignIn() {
       if (authError) throw authError;
 
       if (authData.session) {
+        console.log('✅ Sign in successful, redirecting to dashboard');
         navigate('/dashboard');
       }
     } catch (err: any) {
@@ -49,6 +45,7 @@ export function SignIn() {
     setError('');
 
     try {
+      console.log('🔄 Starting Google OAuth...');
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -57,6 +54,7 @@ export function SignIn() {
       });
 
       if (error) throw error;
+      console.log('✅ Google OAuth initiated');
     } catch (err: any) {
       const errorResponse = handleAuthError(err);
       setError(errorResponse.message);
@@ -69,6 +67,7 @@ export function SignIn() {
     setError('');
 
     try {
+      console.log('🔄 Starting Apple OAuth...');
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'apple',
         options: {
@@ -77,6 +76,7 @@ export function SignIn() {
       });
 
       if (error) throw error;
+      console.log('✅ Apple OAuth initiated');
     } catch (err: any) {
       const errorResponse = handleAuthError(err);
       setError(errorResponse.message);

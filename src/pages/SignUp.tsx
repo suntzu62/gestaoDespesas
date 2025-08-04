@@ -21,11 +21,7 @@ export function SignUp() {
     setError('');
 
     try {
-      // Validate environment variables
-      if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
-        throw new Error('Missing Supabase environment variables');
-      }
-
+      console.log('🔄 Starting email signup...');
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
@@ -40,9 +36,11 @@ export function SignUp() {
 
       if (authData.user && !authData.session) {
         // Email confirmation required
+        console.log('📧 Email confirmation required');
         setSuccess(true);
       } else if (authData.session) {
         // Direct sign-in (email confirmation disabled)
+        console.log('✅ Signup successful, redirecting to dashboard');
         navigate('/dashboard');
       }
     } catch (err: any) {
@@ -59,6 +57,7 @@ export function SignUp() {
     setError('');
 
     try {
+      console.log('🔄 Starting Google OAuth signup...');
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -67,6 +66,7 @@ export function SignUp() {
       });
 
       if (error) throw error;
+      console.log('✅ Google OAuth initiated');
     } catch (err: any) {
       const errorResponse = handleAuthError(err);
       setError(errorResponse.message);
@@ -79,6 +79,7 @@ export function SignUp() {
     setError('');
 
     try {
+      console.log('🔄 Starting Apple OAuth signup...');
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'apple',
         options: {
@@ -87,6 +88,7 @@ export function SignUp() {
       });
 
       if (error) throw error;
+      console.log('✅ Apple OAuth initiated');
     } catch (err: any) {
       const errorResponse = handleAuthError(err);
       setError(errorResponse.message);

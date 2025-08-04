@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, TrendingUp } from 'lucide-react';
-import { supabase } from '../lib/supabase';
-
-import { UserRole } from '../lib/supabase';
+import { Loader2, TrendingUp, AlertCircle } from 'lucide-react';
+import { supabase, UserRole } from '../lib/supabase';
 
 const getRoleBasedRedirect = (role: UserRole): string => {
   switch (role) {
@@ -23,29 +21,43 @@ export function AuthCallback() {
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
-        const { data, error } = await supabase.auth.getSession();
+        console.log('🔄 Processing auth callback...');
         
-        if (error) throw error;
+        // Get the current session
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error('❌ Session error:', sessionError);
+          throw sessionError;
+        }
 
-        if (data.session) {
-          // Get user profile to determine role-based redirect
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', data.session.user.id)
-            .single();
-
-          const userRole = (profile?.role as UserRole) || 'collaborator';
-          const redirectTo = getRoleBasedRedirect(userRole);
+        if (session?.user) {
+          console.log('✅ User authenticated:', session.user.email);
           
-          navigate(redirectTo, { replace: true });
+          // Get user profile to determine role-based redirect
+          try {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('role')
+              .eq('id', session.user.id)
+              .single();
+
+            const userRole = (profile?.role as UserRole) || 'collaborator';
+            const redirectTo = getRoleBasedRedirect(userRole);
+            
+            console.log('🎯 Redirecting to:', redirectTo);
+            navigate(redirectTo, { replace: true });
+          } catch (profileError) {
+            console.warn('⚠️ Could not fetch profile, using default redirect');
+            navigate('/dashboard', { replace: true });
+          }
         } else {
-          // No session, redirect to sign in
+          console.log('❌ No session found, redirecting to signin');
           navigate('/signin', { replace: true });
         }
       } catch (err: any) {
-        console.error('Auth callback error:', err);
-        setError('Erro ao processar autenticação. Tente novamente.');
+        console.error('💥 Auth callback error:', err);
+        setError('Erro ao processar autenticação. Redirecionando...');
         
         // Redirect to sign in after showing error briefly
         setTimeout(() => {
@@ -62,7 +74,7 @@ export function AuthCallback() {
       <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full text-center">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <TrendingUp className="w-8 h-8 text-red-600" />
+            <AlertCircle className="w-8 h-8 text-red-600" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Erro de Autenticação</h2>
           <p className="text-gray-600 mb-4">{error}</p>
