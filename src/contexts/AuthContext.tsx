@@ -27,7 +27,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshUser = async () => {
     console.log('🔄 AuthContext: refreshUser called');
-   
+     if (!supabase) {
+      console.error('💥 AuthContext: Supabase client is undefined. This is critical. Check environment variables and src/lib/supabase.ts initialization.');
+      setLoading(false); // Parar o estado de carregamento
+      setUser(null); // Garantir que o usuário seja nulo
+      setSession(null); // Garantir que a sessão seja nula
+      return; // Sair da função cedo
+    }
     try {
       const { data: { session } } = await supabase.auth.getSession();
       console.log('📝 AuthContext: session from getSession:', session?.user?.id || 'NO SESSION');
