@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { TrendingUp } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 import { SignInData } from '../lib/validations';
 import { handleAuthError } from '../utils/handleError';
 import { AuthForm } from '../components/AuthForm';
@@ -9,6 +9,7 @@ import { GoogleAuthButton } from '../components/GoogleAuthButton';
 import { AppleAuthButton } from '../components/AppleAuthButton';
 
 export function SignIn() {
+  const { signIn, signInWithGoogle, signInWithApple } = useAuth();
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
@@ -20,19 +21,9 @@ export function SignIn() {
     setError('');
 
     try {
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: data.email,
-        password: data.password,
-      });
-
-      if (authError) throw authError;
-
-      if (authData.session) {
-        console.log('✅ Sign in successful, redirecting to dashboard');
-        navigate('/dashboard');
-      }
+      await signIn(data.email, data.password);
+      navigate('/dashboard');
     } catch (err: any) {
-      console.error('SignIn Error:', err);
       const errorResponse = handleAuthError(err);
       setError(errorResponse.message);
     } finally {
@@ -45,16 +36,7 @@ export function SignIn() {
     setError('');
 
     try {
-      console.log('🔄 Starting Google OAuth...');
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-
-      if (error) throw error;
-      console.log('✅ Google OAuth initiated');
+      await signInWithGoogle();
     } catch (err: any) {
       const errorResponse = handleAuthError(err);
       setError(errorResponse.message);
@@ -67,16 +49,7 @@ export function SignIn() {
     setError('');
 
     try {
-      console.log('🔄 Starting Apple OAuth...');
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'apple',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-
-      if (error) throw error;
-      console.log('✅ Apple OAuth initiated');
+      await signInWithApple();
     } catch (err: any) {
       const errorResponse = handleAuthError(err);
       setError(errorResponse.message);

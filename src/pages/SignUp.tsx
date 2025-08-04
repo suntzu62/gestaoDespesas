@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { TrendingUp } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 import { SignUpData } from '../lib/validations';
 import { handleAuthError } from '../utils/handleError';
 import { AuthForm } from '../components/AuthForm';
@@ -9,6 +9,7 @@ import { GoogleAuthButton } from '../components/GoogleAuthButton';
 import { AppleAuthButton } from '../components/AppleAuthButton';
 
 export function SignUp() {
+  const { signUp, signInWithGoogle, signInWithApple } = useAuth();
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
@@ -21,30 +22,14 @@ export function SignUp() {
     setError('');
 
     try {
-      console.log('🔄 Starting email signup...');
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          data: {
-            full_name: data.name,
-          },
-        },
-      });
-
-      if (authError) throw authError;
-
-      if (authData.user && !authData.session) {
-        // Email confirmation required
-        console.log('📧 Email confirmation required');
+      const result = await signUp(data.email, data.password, data.name);
+      
+      if (result.needsConfirmation) {
         setSuccess(true);
-      } else if (authData.session) {
-        // Direct sign-in (email confirmation disabled)
-        console.log('✅ Signup successful, redirecting to dashboard');
+      } else {
         navigate('/dashboard');
       }
     } catch (err: any) {
-      console.error('SignUp Error:', err);
       const errorResponse = handleAuthError(err);
       setError(errorResponse.message);
     } finally {
@@ -57,16 +42,7 @@ export function SignUp() {
     setError('');
 
     try {
-      console.log('🔄 Starting Google OAuth signup...');
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-
-      if (error) throw error;
-      console.log('✅ Google OAuth initiated');
+      await signInWithGoogle();
     } catch (err: any) {
       const errorResponse = handleAuthError(err);
       setError(errorResponse.message);
@@ -79,16 +55,7 @@ export function SignUp() {
     setError('');
 
     try {
-      console.log('🔄 Starting Apple OAuth signup...');
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'apple',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-
-      if (error) throw error;
-      console.log('✅ Apple OAuth initiated');
+      await signInWithApple();
     } catch (err: any) {
       const errorResponse = handleAuthError(err);
       setError(errorResponse.message);

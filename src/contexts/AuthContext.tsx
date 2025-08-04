@@ -1,14 +1,17 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Session } from '@supabase/supabase-js';
-import { supabase, AuthUser, UserRole, authHelpers } from '../lib/supabase';
+import { Session, User } from '@supabase/supabase-js';
+import { supabase, AuthUser, UserRole } from '../lib/supabase';
 
 interface AuthContextType {
   user: AuthUser | null;
   session: Session | null;
   loading: boolean;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, name: string) => Promise<{ needsConfirmation: boolean }>;
   signOut: () => Promise<void>;
-  refreshUser: () => Promise<void>;
-  hasRole: (role: UserRole | UserRole[]) => boolean;
+  signInWithGoogle: () => Promise<void>;
+  signInWithApple: () => Promise<void>;
+  hasRole: (roles: UserRole | UserRole[]) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -18,89 +21,158 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Check if user has required role(s)
   const hasRole = (requiredRoles: UserRole | UserRole[]): boolean => {
     if (!user?.role) return false;
-    
     const rolesArray = Array.isArray(requiredRoles) ? requiredRoles : [requiredRoles];
     return rolesArray.includes(user.role);
   };
 
-  const refreshUser = async () => {
+  // Get user profile from database
+  const getUserProfile = async (userId: string): Promise<AuthUser | null> => {
     try {
-      console.log('🔄 Refreshing user data...');
-      const userData = await authHelpers.getCurrentUserProfile();
-      setUser(userData);
-      console.log('✅ User data refreshed:', userData ? userData.email : 'No user');
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error || !profile) {
+        console.error('Error fetching profile:', error);
+        return null;
+      }
+
+      return {
+        id: profile.id,
+        email: profile.email,
+        name: profile.name,
+        avatar_url: profile.avatar_url,
+        role: profile.role as UserRole,
+      };
     } catch (error) {
-      console.error('❌ Error refreshing user:', error);
-      setUser(null);
+      console.error('Error in getUserProfile:', error);
+      return null;
     }
   };
 
+  // Create user from auth user data (fallback)
+  const createUserFromAuth = (authUser: User): AuthUser => {
+    return {
+      id: authUser.id,
+      email: authUser.email || '',
+      name: authUser.user_metadata?.full_name || authUser.email || '',
+      avatar_url: authUser.user_metadata?.avatar_url,
+      role: 'collaborator' as UserRole,
+    };
+  };
+
+  // Sign in with email and password
+  const signIn = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) throw error;
+  };
+
+  // Sign up with email and password
+  const signUp = async (email: string, password: string, name: string) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: name,
+        },
+      },
+    });
+
+    if (error) throw error;
+
+    return {
+      needsConfirmation: !data.session && !!data.user,
+    };
+  };
+
+  // Sign out
   const signOut = async () => {
-    try {
-      await authHelpers.signOut();
-      setUser(null);
-      setSession(null);
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
   };
 
-  const handleAuthStateChange = async (event: string, session: Session | null) => {
-    console.log('🔔 Auth state changed:', event, session ? 'with session' : 'no session');
-    
-    setSession(session);
-    
-    if (session?.user) {
-      // User is signed in, get their profile
-      await refreshUser();
-    } else {
-      // User is signed out
-      setUser(null);
-    }
-    
-    setLoading(false);
+  // Sign in with Google
+  const signInWithGoogle = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+
+    if (error) throw error;
   };
 
+  // Sign in with Apple
+  const signInWithApple = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'apple',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+
+    if (error) throw error;
+  };
+
+  // Handle auth state changes
   useEffect(() => {
     let mounted = true;
 
-    const initializeAuth = async () => {
+    // Get initial session
+    const getInitialSession = async () => {
       try {
-        console.log('🚀 Initializing authentication...');
+        const { data: { session } } = await supabase.auth.getSession();
         
-        // Get initial session
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('❌ Error getting session:', error);
-          setLoading(false);
-          return;
-        }
-
         if (mounted) {
-          if (session) {
-            console.log('📝 Initial session found');
-            setSession(session);
-            await refreshUser();
+          setSession(session);
+          
+          if (session?.user) {
+            const profile = await getUserProfile(session.user.id);
+            setUser(profile || createUserFromAuth(session.user));
           } else {
-            console.log('❌ No initial session found');
+            setUser(null);
           }
+          
           setLoading(false);
         }
       } catch (error) {
-        console.error('❌ Error initializing auth:', error);
+        console.error('Error getting initial session:', error);
         if (mounted) {
           setLoading(false);
         }
       }
     };
 
-    initializeAuth();
+    getInitialSession();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthStateChange);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (!mounted) return;
+
+        setSession(session);
+
+        if (event === 'SIGNED_IN' && session?.user) {
+          const profile = await getUserProfile(session.user.id);
+          setUser(profile || createUserFromAuth(session.user));
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
+        }
+
+        setLoading(false);
+      }
+    );
 
     return () => {
       mounted = false;
@@ -108,8 +180,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  const contextValue: AuthContextType = {
+    user,
+    session,
+    loading,
+    signIn,
+    signUp,
+    signOut,
+    signInWithGoogle,
+    signInWithApple,
+    hasRole,
+  };
+
   return (
-    <AuthContext.Provider value={{ user, session, loading, signOut, refreshUser, hasRole }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

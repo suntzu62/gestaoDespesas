@@ -1,73 +1,44 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, TrendingUp, AlertCircle } from 'lucide-react';
-import { supabase, UserRole } from '../lib/supabase';
-
-const getRoleBasedRedirect = (role: UserRole): string => {
-  switch (role) {
-    case 'owner':
-    case 'admin':
-      return '/admin-dashboard';
-    case 'collaborator':
-    default:
-      return '/dashboard';
-  }
-};
+import { useAuth } from '../contexts/AuthContext';
 
 export function AuthCallback() {
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
   const [error, setError] = useState<string>('');
 
   useEffect(() => {
-    const handleAuthCallback = async () => {
-      try {
-        console.log('🔄 Processing auth callback...');
-        
-        // Get the current session
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          console.error('❌ Session error:', sessionError);
-          throw sessionError;
-        }
+    const handleCallback = () => {
+      // Check for error in URL params
+      const urlParams = new URLSearchParams(window.location.search);
+      const errorParam = urlParams.get('error');
+      
+      if (errorParam) {
+        setError('Erro na autenticação. Tente novamente.');
+        setTimeout(() => navigate('/signin'), 3000);
+        return;
+      }
 
-        if (session?.user) {
-          console.log('✅ User authenticated:', session.user.email);
-          
-          // Get user profile to determine role-based redirect
-          try {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('role')
-              .eq('id', session.user.id)
-              .single();
+      // If we have a user, redirect based on role
+      if (user) {
+        const redirectTo = user.role === 'admin' || user.role === 'owner' 
+          ? '/admin-dashboard' 
+          : '/dashboard';
+        navigate(redirectTo, { replace: true });
+        return;
+      }
 
-            const userRole = (profile?.role as UserRole) || 'collaborator';
-            const redirectTo = getRoleBasedRedirect(userRole);
-            
-            console.log('🎯 Redirecting to:', redirectTo);
-            navigate(redirectTo, { replace: true });
-          } catch (profileError) {
-            console.warn('⚠️ Could not fetch profile, using default redirect');
-            navigate('/dashboard', { replace: true });
-          }
-        } else {
-          console.log('❌ No session found, redirecting to signin');
-          navigate('/signin', { replace: true });
-        }
-      } catch (err: any) {
-        console.error('💥 Auth callback error:', err);
-        setError('Erro ao processar autenticação. Redirecionando...');
-        
-        // Redirect to sign in after showing error briefly
-        setTimeout(() => {
-          navigate('/signin', { replace: true });
-        }, 3000);
+      // If not loading and no user, redirect to signin
+      if (!loading && !user) {
+        navigate('/signin', { replace: true });
       }
     };
 
-    handleAuthCallback();
-  }, [navigate]);
+    // Small delay to allow auth state to settle
+    const timer = setTimeout(handleCallback, 1000);
+    return () => clearTimeout(timer);
+  }, [user, loading, navigate]);
 
   if (error) {
     return (
@@ -88,7 +59,10 @@ export function AuthCallback() {
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full text-center">
         <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Loader2 className="w-8 h-8 text-green-600 animate-spin" />
+          <TrendingUp className="w-8 h-8 text-green-600" />
+        </div>
+        <div className="mb-4">
+          <Loader2 className="w-8 h-8 text-green-600 animate-spin mx-auto" />
         </div>
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Processando...</h2>
         <p className="text-gray-600">Finalizando sua autenticação</p>

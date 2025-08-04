@@ -4,13 +4,9 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('❌ Missing Supabase environment variables');
-  console.error('VITE_SUPABASE_URL:', supabaseUrl ? 'defined' : 'undefined');
-  console.error('VITE_SUPABASE_ANON_KEY:', supabaseAnonKey ? 'defined' : 'undefined');
-  throw new Error('Missing Supabase environment variables. Please check your .env file.');
+  throw new Error('Missing Supabase environment variables');
 }
 
-console.log('✅ Initializing Supabase client');
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Types for our database
@@ -123,51 +119,6 @@ export interface Goal {
   created_at: string;
   updated_at: string;
 }
-
-// Auth helper functions
-export const authHelpers = {
-  // Get current user profile
-  getCurrentUserProfile: async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      if (profile) {
-        return {
-          id: profile.id,
-          email: profile.email,
-          name: profile.name,
-          avatar_url: profile.avatar_url,
-          role: profile.role as UserRole,
-        } as AuthUser;
-      }
-
-      // Fallback to auth user data
-      return {
-        id: user.id,
-        email: user.email || '',
-        name: user.user_metadata?.full_name || user.email || '',
-        avatar_url: user.user_metadata?.avatar_url,
-        role: 'collaborator' as UserRole,
-      } as AuthUser;
-    } catch (error) {
-      console.error('Error getting user profile:', error);
-      return null;
-    }
-  },
-
-  // Sign out helper
-  signOut: async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
-  }
-};
 
 // Utility functions for finance operations
 export const financeQueries = {
