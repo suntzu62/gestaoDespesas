@@ -32,7 +32,7 @@ export function ForgotPassword() {
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
-        redirectTo: `${window.location.origin}/update-password?from=reset`,
+        redirectTo: `https://inquisitive-jelly-7d7b55.netlify.app/update-password?from=reset`,
       });
 
       if (error) throw error;
