@@ -106,7 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `https://inquisitive-jelly-7d7b55.netlify.app/auth/callback`,
+        redirectTo: `/auth/callback`,
       },
     });
 
@@ -118,7 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'apple',
       options: {
-        redirectTo: `https://inquisitive-jelly-7d7b55.netlify.app/auth/callback`,
+        redirectTo: `/auth/callback`,
       },
     });
 
