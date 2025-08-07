@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { TrendingUp, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { handleAuthError } from '../utils/handleError';
 import { AuthForm } from '../components/AuthForm';
+import { useAuth } from '../contexts/AuthContext';
 
 type UpdatePasswordData = {
   password: string;
@@ -11,56 +12,17 @@ type UpdatePasswordData = {
 };
 
 export function UpdatePassword() {
+  const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState(false);
-  const [validToken, setValidToken] = useState<boolean | null>(null);
-  const [isCheckingToken, setIsCheckingToken] = useState(true);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  useEffect(() => {
-    const checkSession = async () => {
-      setIsCheckingToken(true);
-      try {
-        // Check if we have the necessary URL parameters for password reset
-        const accessToken = searchParams.get('access_token');
-        const refreshToken = searchParams.get('refresh_token');
-        const type = searchParams.get('type');
-        
-        if (type !== 'recovery' || !accessToken) {
-          throw new Error('Invalid recovery link');
-        }
-        
-        // Set the session with the tokens from URL
-        const { data, error } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken || '',
-        });
-        
-        if (error) throw error;
-        
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) throw sessionError;
-        
-        // Check if we have a valid session for password recovery
-        if (sessionData.session && sessionData.session.user) {
-          setValidToken(true);
-        } else {
-          setValidToken(false);
-          setError('Link de recuperação inválido ou expirado');
-        }
-      } catch (err: any) {
-        console.error('Error checking session:', err);
-        setValidToken(false);
-        setError('Link de recuperação inválido ou expirado');
-      }
-      setIsCheckingToken(false);
-    };
-
-    checkSession();
-  }, []);
+  const typeParam = searchParams.get('type');
+  // Um link de recuperação é válido se houver um usuário autenticado (pelo hash da URL)
+  // E o parâmetro 'type' na URL for 'recovery'.
+  const isValidRecoveryLink = user && typeParam === 'recovery';
 
   const handleUpdatePassword = async (data: UpdatePasswordData) => {
     setLoading(true);
@@ -75,9 +37,8 @@ export function UpdatePassword() {
 
       setSuccess(true);
       
-      // Clear URL parameters and redirect to dashboard after 3 seconds
+      // Limpar parâmetros da URL e redirecionar após 3 segundos
       setTimeout(() => {
-        // Clear the URL parameters
         window.history.replaceState({}, document.title, '/update-password');
         navigate('/dashboard');
       }, 3000);
@@ -89,7 +50,8 @@ export function UpdatePassword() {
     }
   };
 
-  if (isCheckingToken || validToken === null) {
+  // Se o AuthContext ainda estiver carregando, mostre um estado de carregamento
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 flex items-center justify-center">
         <div className="text-center">
@@ -100,7 +62,8 @@ export function UpdatePassword() {
     );
   }
 
-  if (!validToken) {
+  // Se não for um link de recuperação válido (sem usuário ou tipo incorreto)
+  if (!isValidRecoveryLink) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full text-center">
@@ -109,7 +72,7 @@ export function UpdatePassword() {
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Link Inválido</h2>
           <p className="text-gray-600 mb-6">
-            {error || 'O link de redefinição de senha é inválido ou expirou.'}
+            O link de redefinição de senha é inválido ou expirou.
           </p>
           <div className="space-y-4">
             <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg text-sm">
@@ -132,6 +95,7 @@ export function UpdatePassword() {
     );
   }
 
+  // Se a senha foi atualizada com sucesso
   if (success) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -149,6 +113,7 @@ export function UpdatePassword() {
     );
   }
 
+  // Renderize o formulário se for um link de recuperação válido e ainda não foi bem-sucedido
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
