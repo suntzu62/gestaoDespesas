@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { TrendingUp, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { handleAuthError } from '../utils/handleError';
 import { AuthForm } from '../components/AuthForm';
 import { useAuth } from '../contexts/AuthContext';
+import { useEffect } from 'react';
 
 type UpdatePasswordData = {
   password: string;
@@ -16,13 +17,23 @@ export function UpdatePassword() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState(false);
+  const [isValidRecoveryLink, setIsValidRecoveryLink] = useState(false);
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
 
-  const typeParam = searchParams.get('type');
-  // Um link de recuperação é válido se houver um usuário autenticado (pelo hash da URL)
-  // E o parâmetro 'type' na URL for 'recovery'.
-  const isValidRecoveryLink = user && typeParam === 'recovery';
+  useEffect(() => {
+    // Ler parâmetros do hash da URL (formato: #access_token=...&type=recovery)
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const typeFromHash = hashParams.get('type');
+    const accessTokenFromHash = hashParams.get('access_token');
+    
+    // Link é válido se houver usuário autenticado, type=recovery e access_token presente
+    if (user && typeFromHash === 'recovery' && accessTokenFromHash) {
+      setIsValidRecoveryLink(true);
+    } else if (!authLoading && user === null) {
+      // Se não está carregando e não há usuário, link é inválido
+      setIsValidRecoveryLink(false);
+    }
+  }, [user, authLoading]);
 
   const handleUpdatePassword = async (data: UpdatePasswordData) => {
     setLoading(true);
@@ -39,7 +50,7 @@ export function UpdatePassword() {
       
       // Limpar parâmetros da URL e redirecionar após 3 segundos
       setTimeout(() => {
-        window.history.replaceState({}, document.title, '/update-password');
+        window.history.replaceState({}, document.title, window.location.pathname);
         navigate('/dashboard');
       }, 3000);
     } catch (err: any) {
