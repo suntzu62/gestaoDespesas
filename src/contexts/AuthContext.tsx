@@ -128,6 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Handle auth state changes
   useEffect(() => {
     let mounted = true;
+    let timeoutId: NodeJS.Timeout;
 
     // Get initial session
     const getInitialSession = async () => {
@@ -145,15 +146,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
           
           setLoading(false);
+          // Clear timeout if session loaded successfully
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+          }
         }
       } catch (error) {
         console.error('Error getting initial session:', error);
         if (mounted) {
           setLoading(false);
+          // Clear timeout if error occurred
+          if (timeoutId) {
+            clearTimeout(timeoutId);
+          }
         }
       }
     };
 
+    // Set timeout to prevent infinite loading
+    timeoutId = setTimeout(() => {
+      if (mounted && loading) {
+        console.warn('Auth session loading timeout - forcing loading to false');
+        setLoading(false);
+      }
+    }, 10000); // 10 seconds timeout
     getInitialSession();
 
     // Listen for auth changes
@@ -176,6 +192,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       mounted = false;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
       subscription.unsubscribe();
     };
   }, []);
