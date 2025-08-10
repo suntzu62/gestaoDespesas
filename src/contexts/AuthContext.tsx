@@ -133,18 +133,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Get initial session
     const getInitialSession = async () => {
       try {
+        console.log('🔍 [AuthContext] Iniciando obtenção da sessão inicial...');
         const { data: { session } } = await supabase.auth.getSession();
+        
+        console.log('📋 [AuthContext] Sessão obtida:', {
+          session: session ? 'EXISTS' : 'NULL',
+          user: session?.user ? session.user.id : 'NO_USER',
+          expires_at: session?.expires_at,
+          access_token: session?.access_token ? 'EXISTS' : 'NONE'
+        });
         
         if (mounted) {
           setSession(session);
           
           if (session?.user) {
+            console.log('👤 [AuthContext] Usuário encontrado, buscando perfil...', session.user.id);
             const profile = await getUserProfile(session.user.id);
+            console.log('📝 [AuthContext] Perfil obtido:', profile ? 'SUCCESS' : 'FAILED');
             setUser(profile || createUserFromAuth(session.user));
           } else {
+            console.log('❌ [AuthContext] Nenhum usuário na sessão');
             setUser(null);
           }
           
+          console.log('✅ [AuthContext] Finalizando carregamento inicial');
           setLoading(false);
           // Clear timeout if session loaded successfully
           if (timeoutId) {
@@ -152,6 +164,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
       } catch (error) {
+        console.error('🚨 [AuthContext] Erro ao obter sessão inicial:', error);
         console.error('Error getting initial session:', error);
         if (mounted) {
           setLoading(false);
@@ -175,17 +188,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('🔄 [AuthContext] Mudança de estado de auth:', {
+          event,
+          session: session ? 'EXISTS' : 'NULL',
+          user: session?.user ? session.user.id : 'NO_USER'
+        });
+        
         if (!mounted) return;
 
         setSession(session);
 
         if (event === 'SIGNED_IN' && session?.user) {
+          console.log('🔑 [AuthContext] Usuário logado, buscando perfil...', session.user.id);
           const profile = await getUserProfile(session.user.id);
+          console.log('👤 [AuthContext] Perfil do usuário logado:', profile ? 'SUCCESS' : 'FAILED');
           setUser(profile || createUserFromAuth(session.user));
         } else if (event === 'SIGNED_OUT') {
+          console.log('🚪 [AuthContext] Usuário deslogado');
           setUser(null);
         }
 
+        console.log('✅ [AuthContext] Finalizando mudança de estado');
         setLoading(false);
       }
     );
