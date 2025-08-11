@@ -8,21 +8,27 @@ interface BudgetSummaryData {
   totalBudgeted: number;
   totalSpent: number;
   availableAmount: number;
+  moneyAge: number; // Placeholder for "Age of Money" calculation
 }
 
-export function BudgetSummary() {
+interface BudgetSummaryProps {
+  currentDate: Date;
+}
+
+export function BudgetSummary({ currentDate }: BudgetSummaryProps) {
   const { user } = useAuth();
   const [data, setData] = useState<BudgetSummaryData>({
     totalBalance: 0,
     totalBudgeted: 0,
     totalSpent: 0,
     availableAmount: 0,
+    moneyAge: 0,
   });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string>('');
 
-  const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+  const currentMonth = currentDate.toISOString().slice(0, 7); // YYYY-MM
 
   const fetchSummaryData = async (isRefresh = false) => {
     if (!user?.id) return;
@@ -40,12 +46,16 @@ export function BudgetSummary() {
       ]);
 
       const availableAmount = totalBudgeted - totalSpent;
+      // Placeholder calculation for money age - in a real implementation,
+      // this would be calculated based on transaction history
+      const moneyAge = 15; // Days (placeholder)
 
       setData({
         totalBalance,
         totalBudgeted,
         totalSpent,
         availableAmount,
+        moneyAge,
       });
     } catch (err: any) {
       console.error('Error fetching summary data:', err);
@@ -58,7 +68,7 @@ export function BudgetSummary() {
 
   useEffect(() => {
     fetchSummaryData();
-  }, [user?.id]);
+  }, [user?.id, currentMonth]);
 
   const handleRefresh = () => {
     fetchSummaryData(true);
@@ -113,7 +123,7 @@ export function BudgetSummary() {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">Resumo Financeiro</h2>
+        <h3 className="text-lg font-semibold text-gray-900">Visão Geral</h3>
         <button
           onClick={handleRefresh}
           disabled={refreshing}
@@ -124,7 +134,7 @@ export function BudgetSummary() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         {/* Total em Contas */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <div className="flex items-center justify-between mb-2">
@@ -182,6 +192,20 @@ export function BudgetSummary() {
             {data.availableAmount >= 0 ? 'Dentro do orçamento' : 'Acima do orçado'}
           </div>
         </div>
+
+        {/* Age of Money */}
+        <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-2">
+            <TrendingUp className="w-5 h-5 text-indigo-600" />
+            <span className="text-xs text-indigo-600 font-medium">IDADE DO DINHEIRO</span>
+          </div>
+          <div className="text-2xl font-bold text-indigo-700">
+            {data.moneyAge} dias
+          </div>
+          <div className="text-xs text-indigo-600 mt-1">
+            Tempo médio antes do gasto
+          </div>
+        </div>
       </div>
 
       {/* Progress Bar */}
@@ -189,7 +213,7 @@ export function BudgetSummary() {
         <div className="mt-6">
           <div className="flex justify-between text-sm text-gray-600 mb-2">
             <span>Progresso do orçamento</span>
-            <span>{Math.round((data.totalSpent / data.totalBudgeted) * 100)}%</span>
+            <span>{Math.min(Math.round((data.totalSpent / data.totalBudgeted) * 100), 100)}%</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-3">
             <div

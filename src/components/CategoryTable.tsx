@@ -8,7 +8,9 @@ import {
   Loader2,
   TrendingUp,
   TrendingDown,
-  AlertCircle
+  AlertCircle,
+  Save,
+  X
 } from 'lucide-react';
 import { supabase, Category, Budget } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -21,15 +23,17 @@ interface CategoryWithBudget extends Category {
 }
 
 interface CategoryTableProps {
+  currentDate: Date;
   onAddTransaction: () => void;
 }
 
-export function CategoryTable({ onAddTransaction }: CategoryTableProps) {
+export function CategoryTable({ currentDate, onAddTransaction }: CategoryTableProps) {
   const { user } = useAuth();
   const [categories, setCategories] = useState<CategoryWithBudget[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentDate, setCurrentDate] = useState(new Date());
   const [error, setError] = useState<string>('');
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [editingBudget, setEditingBudget] = useState<number>(0);
 
   const currentMonth = currentDate.toISOString().slice(0, 7); // YYYY-MM
   const monthName = currentDate.toLocaleDateString('pt-BR', { 
@@ -120,16 +124,6 @@ export function CategoryTable({ onAddTransaction }: CategoryTableProps) {
     fetchCategoriesWithBudget();
   }, [user?.id, currentMonth]);
 
-  const navigateMonth = (direction: 'prev' | 'next') => {
-    const newDate = new Date(currentDate);
-    if (direction === 'prev') {
-      newDate.setMonth(newDate.getMonth() - 1);
-    } else {
-      newDate.setMonth(newDate.getMonth() + 1);
-    }
-    setCurrentDate(newDate);
-  };
-
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -148,6 +142,48 @@ export function CategoryTable({ onAddTransaction }: CategoryTableProps) {
     if (amount < 0) return 'text-red-600';
     if (amount === 0) return 'text-gray-600';
     return 'text-green-600';
+  };
+
+  const handleEditBudget = async (categoryId: string, newAmount: number) => {
+    if (!user?.id) return;
+    
+    try {
+      // First, try to update existing budget
+      const { data: existingBudget } = await supabase
+        .from('budgets')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('category_id', categoryId)
+        .eq('month', `${currentMonth}-01`)
+        .single();
+
+      if (existingBudget) {
+        // Update existing budget
+        const { error } = await supabase
+          .from('budgets')
+          .update({ budgeted_amount: newAmount })
+          .eq('id', existingBudget.id);
+        
+        if (error) throw error;
+      } else {
+        // Create new budget entry
+        const { error } = await supabase
+          .from('budgets')
+          .insert({
+            user_id: user.id,
+            category_id: categoryId,
+            month: `${currentMonth}-01`,
+            budgeted_amount: newAmount,
+          });
+        
+        if (error) throw error;
+      }
+      
+      await fetchCategoriesWithBudget();
+      setEditingCategory(null);
+    } catch (err) {
+      console.error('Error updating budget:', err);
+    }
   };
 
   // Group categories by type
@@ -198,27 +234,8 @@ export function CategoryTable({ onAddTransaction }: CategoryTableProps) {
       {/* Header */}
       <div className="p-6 border-b border-gray-200">
         <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold text-gray-900">Orçamento por Categoria</h2>
+          <h3 className="text-lg font-semibold text-gray-900">Detalhamento por Categoria</h3>
           <div className="flex items-center gap-4">
-            {/* Month Navigation */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => navigateMonth('prev')}
-                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <span className="text-lg font-medium text-gray-700 min-w-48 text-center capitalize">
-                {monthName}
-              </span>
-              <button
-                onClick={() => navigateMonth('next')}
-                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-            
             {/* Action Buttons */}
             <div className="flex gap-2">
               <button
@@ -297,8 +314,38 @@ export function CategoryTable({ onAddTransaction }: CategoryTableProps) {
                       <div className="flex items-center gap-6 text-sm">
                         <div className="text-right">
                           <div className="text-gray-500">Planejado</div>
-                          <div className="font-medium text-gray-900">
-                            {formatCurrency(category.budgeted_amount_current)}
+                          <div className="font-medium text-gray-900 flex items-center gap-2">
+                            {editingCategory === category.id ? (
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="number"
+                                  value={editingBudget}
+                                  onChange={(e) => setEditingBudget(Number(e.target.value))}
+                                  className="w-24 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                                  step="0.01"
+                                  min="0"
+                                />
+                                <button
+                                  onClick={() => handleEditBudget(category.id, editingBudget)}
+                                  className="text-green-600 hover:text-green-700"
+                                >
+                                  <Save className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => setEditingCategory(null)}
+                                  className="text-gray-600 hover:text-gray-700"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </div>
+                            ) : (
+                              <span onClick={() => {
+                                setEditingCategory(category.id);
+                                setEditingBudget(category.budgeted_amount_current);
+                              }} className="cursor-pointer hover:text-green-600 transition-colors">
+                                {formatCurrency(category.budgeted_amount_current)}
+                              </span>
+                            )}
                           </div>
                         </div>
                         <div className="text-right">
@@ -316,7 +363,13 @@ export function CategoryTable({ onAddTransaction }: CategoryTableProps) {
                         
                         {/* Actions */}
                         <div className="flex items-center gap-1">
-                          <button className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded">
+                          <button 
+                            onClick={() => {
+                              setEditingCategory(category.id);
+                              setEditingBudget(category.budgeted_amount_current);
+                            }}
+                            className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded"
+                          >
                             <Edit3 className="w-4 h-4" />
                           </button>
                           <button className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded">
