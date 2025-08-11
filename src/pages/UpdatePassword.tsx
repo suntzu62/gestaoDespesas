@@ -4,7 +4,6 @@ import { TrendingUp, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { handleAuthError } from '../utils/handleError';
 import { AuthForm } from '../components/AuthForm';
-import { useAuth } from '../contexts/AuthContext';
 import { useEffect } from 'react';
 
 type UpdatePasswordData = {
@@ -13,27 +12,51 @@ type UpdatePasswordData = {
 };
 
 export function UpdatePassword() {
-  const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState(false);
-  const [isValidRecoveryLink, setIsValidRecoveryLink] = useState(false);
+  const [isRecoverySession, setIsRecoverySession] = useState(false);
+  const [isLinkChecked, setIsLinkChecked] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Ler parâmetros do hash da URL (formato: #access_token=...&type=recovery)
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const typeFromHash = hashParams.get('type');
-    const accessTokenFromHash = hashParams.get('access_token');
+    let mounted = true;
     
-    // Link é válido se houver usuário autenticado, type=recovery e access_token presente
-    if (user && typeFromHash === 'recovery' && accessTokenFromHash) {
-      setIsValidRecoveryLink(true);
-    } else if (!authLoading && user === null) {
-      // Se não está carregando e não há usuário, link é inválido
-      setIsValidRecoveryLink(false);
-    }
-  }, [user, authLoading]);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (!mounted) return;
+        
+        console.log('🔄 [UpdatePassword] Auth state change:', { event, session: session ? 'EXISTS' : 'NULL' });
+        
+        if (event === 'PASSWORD_RECOVERY') {
+          console.log('🔑 [UpdatePassword] Password recovery event detected');
+          setIsRecoverySession(true);
+          setIsLinkChecked(true);
+        } else if (event === 'SIGNED_IN' && session?.user && window.location.hash.includes('type=recovery')) {
+          console.log('🔑 [UpdatePassword] Signed in via recovery link');
+          setIsRecoverySession(true);
+          setIsLinkChecked(true);
+        } else if (event === 'SIGNED_OUT' || (event === 'INITIAL_SESSION' && !session)) {
+          console.log('❌ [UpdatePassword] No recovery session detected');
+          setIsLinkChecked(true);
+        }
+      }
+    );
+
+    // Timeout de segurança para evitar carregamento infinito
+    const timeout = setTimeout(() => {
+      if (mounted && !isLinkChecked) {
+        console.warn('⏰ [UpdatePassword] Timeout - marking link as checked');
+        setIsLinkChecked(true);
+      }
+    }, 5000);
+    
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
+  }, [isLinkChecked]);
 
   const handleUpdatePassword = async (data: UpdatePasswordData) => {
     setLoading(true);
@@ -48,10 +71,10 @@ export function UpdatePassword() {
 
       setSuccess(true);
       
-      // Limpar parâmetros da URL e redirecionar após 3 segundos
+      // Limpar parâmetros da URL e redirecionar para login após 3 segundos
       setTimeout(() => {
         window.history.replaceState({}, document.title, window.location.pathname);
-        navigate('/dashboard');
+        navigate('/signin');
       }, 3000);
     } catch (err: any) {
       const errorResponse = handleAuthError(err);
@@ -61,8 +84,8 @@ export function UpdatePassword() {
     }
   };
 
-  // Se o AuthContext ainda estiver carregando, mostre um estado de carregamento
-  if (authLoading) {
+  // Se ainda estamos verificando o link, mostra carregamento
+  if (!isLinkChecked) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 flex items-center justify-center">
         <div className="text-center">
@@ -73,8 +96,26 @@ export function UpdatePassword() {
     );
   }
 
-  // Se não for um link de recuperação válido (sem usuário ou tipo incorreto)
-  if (!isValidRecoveryLink) {
+  // Se a senha foi atualizada com sucesso
+  if (success) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full text-center">
+          <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+            <CheckCircle className="w-8 h-8 text-green-600" />
+          </div>
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">Senha atualizada!</h2>
+          <p className="text-gray-600 mb-6">
+            Sua senha foi alterada com sucesso. Redirecionando para o login...
+          </p>
+          <Loader2 className="w-6 h-6 text-green-600 animate-spin mx-auto" />
+        </div>
+      </div>
+    );
+  }
+
+  // Se não for um link de recuperação válido
+  if (!isRecoverySession) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full text-center">
@@ -106,25 +147,7 @@ export function UpdatePassword() {
     );
   }
 
-  // Se a senha foi atualizada com sucesso
-  if (success) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full text-center">
-          <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-            <CheckCircle className="w-8 h-8 text-green-600" />
-          </div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Senha atualizada!</h2>
-          <p className="text-gray-600 mb-6">
-            Sua senha foi alterada com sucesso. Redirecionando para o dashboard...
-          </p>
-          <Loader2 className="w-6 h-6 text-green-600 animate-spin mx-auto" />
-        </div>
-      </div>
-    );
-  }
-
-  // Renderize o formulário se for um link de recuperação válido e ainda não foi bem-sucedido
+  // Renderizar o formulário de nova senha
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
