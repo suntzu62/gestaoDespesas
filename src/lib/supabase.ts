@@ -120,6 +120,23 @@ export interface Goal {
   updated_at: string;
 }
 
+export interface CategoryGroup {
+  id: string;
+  user_id: string;
+  name: string;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CategoryWithGroup extends Category {
+  group?: CategoryGroup;
+}
+
+export interface CategoryGroupWithCategories extends CategoryGroup {
+  categories: CategoryWithGroup[];
+}
+
 // Utility functions for finance operations
 export const financeQueries = {
   // Get user's accounts
@@ -417,5 +434,238 @@ export const financeQueries = {
       console.error('Error getting budget vs actual:', error);
       return [];
     }
+  }
+
+  // ============ CATEGORY GROUPS FUNCTIONS ============
+
+  // Get all category groups for a user
+  getCategoryGroups: (userId: string) =>
+    supabase
+      .from('category_groups')
+      .select('*')
+      .eq('user_id', userId)
+      .order('sort_order'),
+
+  // Get categories by group
+  getCategoriesByGroup: (userId: string, groupId?: string) => {
+    let query = supabase
+      .from('categories')
+      .select(`
+        *,
+        group:category_groups(*)
+      `)
+      .eq('user_id', userId)
+      .eq('is_hidden', false)
+      .order('sort_order');
+
+    if (groupId) {
+      query = query.eq('group_id', groupId);
+    } else {
+      query = query.is('group_id', null);
+    }
+
+    return query;
+  },
+
+  // Get category groups with their categories
+  getCategoryGroupsWithCategories: async (userId: string): Promise<CategoryGroupWithCategories[]> => {
+    try {
+      // Get all groups
+      const { data: groups, error: groupsError } = await supabase
+        .from('category_groups')
+        .select('*')
+        .eq('user_id', userId)
+        .order('sort_order');
+
+      if (groupsError) throw groupsError;
+
+      // Get all categories for this user
+      const { data: categories, error: categoriesError } = await supabase
+        .from('categories')
+        .select(`
+          *,
+          group:category_groups(*)
+        `)
+        .eq('user_id', userId)
+        .eq('is_hidden', false)
+        .order('sort_order');
+
+      if (categoriesError) throw categoriesError;
+
+      // Group categories by group_id
+      const categoriesByGroup = categories?.reduce((acc, category) => {
+        const groupId = category.group_id || 'ungrouped';
+        if (!acc[groupId]) acc[groupId] = [];
+        acc[groupId].push(category);
+        return acc;
+      }, {} as Record<string, CategoryWithGroup[]>) || {};
+
+      // Combine groups with their categories
+      const groupsWithCategories: CategoryGroupWithCategories[] = groups?.map(group => ({
+        ...group,
+        categories: categoriesByGroup[group.id] || []
+      })) || [];
+
+      // Add ungrouped categories as a special group if they exist
+      if (categoriesByGroup['ungrouped']?.length > 0) {
+        groupsWithCategories.push({
+          id: 'ungrouped',
+          user_id: userId,
+          name: 'Sem Grupo',
+          sort_order: 999,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          categories: categoriesByGroup['ungrouped']
+        });
+      }
+
+      return groupsWithCategories;
+    } catch (error) {
+      console.error('Error getting category groups with categories:', error);
+      return [];
+    }
+  },
+
+  // Get budget and spent data for a specific category and month
+  getCategoryBudgetAndSpent: async (userId: string, categoryId: string, month: string) => {
+    try {
+      // Get budget data
+      const { data: budget, error: budgetError } = await supabase
+        .from('budgets')
+        .select('budgeted_amount, rollover_amount')
+        .eq('user_id', userId)
+        .eq('category_id', categoryId)
+        .eq('month', `${month}-01`)
+        .single();
+
+      if (budgetError && budgetError.code !== 'PGRST116') throw budgetError;
+
+      // Get spent amount
+      const startDate = `${month}-01`;
+      const endDate = `${month}-31`;
+      
+      const { data: transactions, error: transactionError } = await supabase
+        .from('transactions')
+        .select('amount')
+        .eq('user_id', userId)
+        .eq('category_id', categoryId)
+        .eq('type', 'expense')
+        .gte('date', startDate)
+        .lte('date', endDate);
+
+      if (transactionError) throw transactionError;
+
+      const budgeted = (budget?.budgeted_amount || 0) + (budget?.rollover_amount || 0);
+      const spent = transactions?.reduce((total, t) => total + Math.abs(t.amount || 0), 0) || 0;
+      const available = budgeted - spent;
+
+      return {
+        budgeted,
+        spent,
+        available,
+        rollover: budget?.rollover_amount || 0
+      };
+    } catch (error) {
+      console.error('Error getting category budget and spent:', error);
+      return { budgeted: 0, spent: 0, available: 0, rollover: 0 };
+    }
+  },
+
+  // Get historical data for a category (for Inspector mini-chart)
+  getCategoryHistoricalData: async (userId: string, categoryId: string, monthsBack: number = 6) => {
+    try {
+      const months = [];
+      const currentDate = new Date();
+      
+      // Generate last N months
+      for (let i = monthsBack - 1; i >= 0; i--) {
+        const date = new Date(currentDate);
+        date.setMonth(date.getMonth() - i);
+        months.push({
+          month: date.toISOString().slice(0, 7),
+          name: date.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })
+        });
+      }
+
+      const historicalData = [];
+
+      for (const { month, name } of months) {
+        const data = await financeQueries.getCategoryBudgetAndSpent(userId, categoryId, month);
+        
+        historicalData.push({
+          month: name,
+          planejado: data.budgeted,
+          gasto: data.spent,
+          disponivel: data.available
+        });
+      }
+
+      return historicalData;
+    } catch (error) {
+      console.error('Error getting category historical data:', error);
+      return [];
+    }
+  },
+
+  // Get goals for a specific category
+  getGoalsForCategory: (userId: string, categoryId: string) =>
+    supabase
+      .from('goals')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('category_id', categoryId)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false }),
+
+  // Create a new category group
+  createCategoryGroup: async (userId: string, name: string, sortOrder?: number) => {
+    const { data, error } = await supabase
+      .from('category_groups')
+      .insert({
+        user_id: userId,
+        name,
+        sort_order: sortOrder || 0
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  // Update category group
+  updateCategoryGroup: async (groupId: string, updates: Partial<CategoryGroup>) => {
+    const { data, error } = await supabase
+      .from('category_groups')
+      .update(updates)
+      .eq('id', groupId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  // Delete category group
+  deleteCategoryGroup: async (groupId: string) => {
+    const { error } = await supabase
+      .from('category_groups')
+      .delete()
+      .eq('id', groupId);
+
+    if (error) throw error;
+  },
+
+  // Update category to assign it to a group
+  assignCategoryToGroup: async (categoryId: string, groupId: string | null) => {
+    const { data, error } = await supabase
+      .from('categories')
+      .update({ group_id: groupId })
+      .eq('id', categoryId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
   }
 };
