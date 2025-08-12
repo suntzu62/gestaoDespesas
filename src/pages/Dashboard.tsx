@@ -1,19 +1,96 @@
 import React from 'react';
 import { TrendingUp, LogOut, User, Settings, Plus, ChevronLeft, ChevronRight, RefreshCw, Wifi, WifiOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { BudgetContextProvider, useBudgetContext } from '../contexts/BudgetContext';
 import { useNavigate } from 'react-router-dom';
 import { BudgetSummary } from '../components/BudgetSummary';
-import { CategoryTable } from '../components/CategoryTable';
+// import { CategoryTable } from '../components/CategoryTable';
 import { TransactionModal } from '../components/TransactionModal';
-import { GoalOverview } from '../components/GoalOverview';
-import { ReportsSection } from '../components/ReportsSection';
+// import { GoalOverview } from '../components/GoalOverview';
+// import { ReportsSection } from '../components/ReportsSection';
 
-export function Dashboard() {
+// Temporary placeholder components for the new modules
+function BudgetingModulePlaceholder() {
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+      <h3 className="text-xl font-semibold text-gray-900 mb-4">Módulo de Orçamento (Em Breve)</h3>
+      <p className="text-gray-600 mb-4">
+        Aqui será o novo módulo de orçamento base-zero com grupos de categorias, 
+        similar ao YNAB.
+      </p>
+      <div className="space-y-4">
+        <div className="bg-gray-50 rounded-lg p-4">
+          <h4 className="font-medium text-gray-900 mb-2">🗂️ Grupos de Categorias</h4>
+          <p className="text-sm text-gray-600">Organize suas categorias em grupos como "Essenciais", "Lazer", etc.</p>
+        </div>
+        <div className="bg-gray-50 rounded-lg p-4">
+          <h4 className="font-medium text-gray-900 mb-2">💰 Orçamento Base-Zero</h4>
+          <p className="text-sm text-gray-600">Aloque cada centavo da sua renda para categorias específicas.</p>
+        </div>
+        <div className="bg-gray-50 rounded-lg p-4">
+          <h4 className="font-medium text-gray-900 mb-2">🎯 Metas por Categoria</h4>
+          <p className="text-sm text-gray-600">Defina objetivos de gasto ou poupança para cada categoria.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function InspectorPanelPlaceholder() {
+  const { selectedCategory } = useBudgetContext();
+  
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">Inspector</h3>
+      {selectedCategory ? (
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 mb-4">
+            <div 
+              className="w-6 h-6 rounded-full"
+              style={{ backgroundColor: selectedCategory.color }}
+            />
+            <h4 className="font-medium text-gray-900">{selectedCategory.name}</h4>
+          </div>
+          <p className="text-sm text-gray-600 mb-4">
+            Detalhes da categoria selecionada aparecerão aqui.
+          </p>
+          <div className="space-y-3">
+            <div className="bg-gray-50 rounded-lg p-3">
+              <div className="text-sm font-medium text-gray-700">📊 Mini-gráfico histórico</div>
+              <div className="text-xs text-gray-500">Últimos 6 meses de planejado vs gasto</div>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-3">
+              <div className="text-sm font-medium text-gray-700">🎯 Gerenciamento de metas</div>
+              <div className="text-xs text-gray-500">Criar e editar metas para esta categoria</div>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-3">
+              <div className="text-sm font-medium text-gray-700">💡 Dicas contextuais</div>
+              <div className="text-xs text-gray-500">Insights baseados no comportamento de gastos</div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="text-center py-8">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <TrendingUp className="w-8 h-8 text-gray-400" />
+          </div>
+          <h4 className="text-gray-900 font-medium mb-2">Nenhuma categoria selecionada</h4>
+          <p className="text-gray-500 text-sm">
+            Selecione uma categoria para ver detalhes, histórico e gerenciar metas.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Internal Dashboard component that uses the context
+function DashboardContent() {
   const { user, signOut } = useAuth();
+  const { currentDate, navigateMonth, refreshBudget } = useBudgetContext();
   const navigate = useNavigate();
   const [isTransactionModalOpen, setIsTransactionModalOpen] = React.useState(false);
-  const [currentDate, setCurrentDate] = React.useState(new Date());
-  const [lastSyncTime] = React.useState(new Date()); // Placeholder for last sync time
+  const [lastSyncTime] = React.useState(new Date());
 
   const handleSignOut = async () => {
     try {
@@ -25,18 +102,8 @@ export function Dashboard() {
   };
 
   const handleTransactionSuccess = () => {
-    // Refresh the page data after successful transaction
-    window.location.reload();
-  };
-
-  const navigateMonth = (direction: 'prev' | 'next') => {
-    const newDate = new Date(currentDate);
-    if (direction === 'prev') {
-      newDate.setMonth(newDate.getMonth() - 1);
-    } else {
-      newDate.setMonth(newDate.getMonth() + 1);
-    }
-    setCurrentDate(newDate);
+    // Refresh budget data after successful transaction
+    refreshBudget();
   };
 
   const formatMonthYear = (date: Date) => {
@@ -92,7 +159,7 @@ export function Dashboard() {
         </header>
 
         <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-          {/* Header with Month Navigation */}
+          {/* Header with Month Navigation and Summary */}
           <div className="mb-8">
             <div className="flex justify-between items-center">
               <div>
@@ -131,35 +198,21 @@ export function Dashboard() {
             </div>
           </div>
 
-          <div className="space-y-8">
-            {/* Budget Summary - Section 1 */}
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Resumo do Mês</h2>
+          {/* Two Column Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Left Column - Budget Module (2/3 width) */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Budget Summary */}
               <BudgetSummary currentDate={currentDate} />
-            </div>
-
-            {/* Category Budget Table - Section 2 */}
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Orçamento por Categoria</h2>
-              <CategoryTable 
-                currentDate={currentDate}
-                onAddTransaction={() => setIsTransactionModalOpen(true)} 
-              />
-            </div>
-
-            {/* Goals and Reports - Section 3 */}
-            <div className="space-y-8">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">Relatórios e Análises</h2>
-                <ReportsSection currentDate={currentDate} />
-              </div>
               
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">Suas Metas</h2>
-                <GoalOverview />
-              </div>
+              {/* Budget Module Placeholder */}
+              <BudgetingModulePlaceholder />
             </div>
 
+            {/* Right Column - Inspector Panel (1/3 width) */}
+            <div className="lg:col-span-1">
+              <InspectorPanelPlaceholder />
+            </div>
           </div>
         </main>
       </div>
@@ -171,5 +224,14 @@ export function Dashboard() {
         onSuccess={handleTransactionSuccess}
       />
     </>
+  );
+}
+
+// Main Dashboard component with BudgetContextProvider
+export function Dashboard() {
+  return (
+    <BudgetContextProvider>
+      <DashboardContent />
+    </BudgetContextProvider>
   );
 }
