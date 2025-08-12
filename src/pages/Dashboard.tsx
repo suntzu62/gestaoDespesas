@@ -6,6 +6,7 @@ import { BudgetSummary } from '../components/BudgetSummary';
 import { CategoryTable } from '../components/CategoryTable';
 import { TransactionModal } from '../components/TransactionModal';
 import { GoalOverview } from '../components/GoalOverview';
+import { ReportsSection } from '../components/ReportsSection';
 
 export function Dashboard() {
   const { user, signOut } = useAuth();
@@ -130,41 +131,6 @@ export function Dashboard() {
             </div>
           </div>
 
-          {/* Bank Integration Section */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-            <div className="flex justify-between items-center">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Integração Bancária</h3>
-                <div className="flex items-center gap-4 text-sm text-gray-600">
-                  <div className="flex items-center gap-2">
-                    <Wifi className="w-4 h-4 text-green-500" />
-                    <span>2 contas conectadas</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span>Última sincronização:</span>
-                    <span className="font-medium">
-                      {lastSyncTime.toLocaleDateString('pt-BR', { 
-                        day: '2-digit', 
-                        month: '2-digit', 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                      })}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <button className="flex items-center gap-2 text-green-600 hover:text-green-700 transition-colors">
-                  <RefreshCw className="w-4 h-4" />
-                  <span>Sincronizar agora</span>
-                </button>
-                <button className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
-                  Conectar conta
-                </button>
-              </div>
-            </div>
-          </div>
-
           <div className="space-y-8">
             {/* Budget Summary - Section 1 */}
             <div>
@@ -182,25 +148,15 @@ export function Dashboard() {
             </div>
 
             {/* Goals and Reports - Section 3 */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="space-y-8">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">Metas Financeiras</h2>
-                <GoalOverview />
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">Relatórios e Análises</h2>
+                <ReportsSection currentDate={currentDate} />
               </div>
               
               <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">Relatórios e Previsões</h2>
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                  <div className="space-y-4">
-                    <div className="text-center py-8 text-gray-500">
-                      <TrendingUp className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                      <h3 className="font-medium mb-2">Relatórios em Desenvolvimento</h3>
-                      <p className="text-sm">
-                        Gráficos de gastos, evolução do saldo e previsões de fluxo de caixa estarão disponíveis em breve.
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">Suas Metas</h2>
+                <GoalOverview />
               </div>
             </div>
 

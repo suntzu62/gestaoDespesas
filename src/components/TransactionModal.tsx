@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Upload, Loader2, DollarSign, Calendar, FileText, Tag } from 'lucide-react';
+import { X, Plus, Upload, Loader2, DollarSign, Calendar, FileText, Tag, AlertCircle } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import Papa from 'papaparse';
 import { supabase, Account, Category } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -31,6 +32,10 @@ export function TransactionModal({ isOpen, onClose, onSuccess }: TransactionModa
   const [categories, setCategories] = useState<Category[]>([]);
   const [error, setError] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'manual' | 'import'>('manual');
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importError, setImportError] = useState<string>('');
+  const [importSuccess, setImportSuccess] = useState<string>('');
+  const [importLoading, setImportLoading] = useState(false);
 
   const {
     register,
@@ -138,6 +143,163 @@ export function TransactionModal({ isOpen, onClose, onSuccess }: TransactionModa
       setError('Erro ao criar transação. Tente novamente.');
     } finally {
       setLoading(false);
+    }
+  };
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validate file type
+      const fileType = file.name.split('.').pop()?.toLowerCase();
+      if (!['csv', 'txt'].includes(fileType || '')) {
+        setImportError('Apenas arquivos CSV são suportados no momento');
+        return;
+      }
+      
+      setImportFile(file);
+      setImportError('');
+    }
+  };
+
+  const processImportFile = async () => {
+    if (!importFile || !user?.id) return;
+
+    setImportLoading(true);
+    setImportError('');
+    setImportSuccess('');
+
+    try {
+      const text = await importFile.text();
+      
+      Papa.parse(text, {
+        header: true,
+        skipEmptyLines: true,
+        complete: async (results) => {
+          try {
+            const transactions = [];
+            const errors = [];
+
+            // Process each row
+            for (let i = 0; i < results.data.length; i++) {
+              const row = results.data[i] as any;
+              
+              // Try to map common CSV column names
+              const description = row.description || row.descrição || row.descricao || row.memo || row.historico || '';
+              const amountStr = row.amount || row.valor || row.value || '0';
+              const dateStr = row.date || row.data || row.dt || '';
+              
+              if (!description || !dateStr) {
+                errors.push(`Linha ${i + 2}: Descrição ou data em branco`);
+                continue;
+              }
+
+              // Parse amount (handle different formats)
+              let amount = 0;
+              const cleanAmount = amountStr.toString().replace(/[^\d.,\-]/g, '');
+              
+              if (cleanAmount.includes(',') && cleanAmount.includes('.')) {
+                // Format: 1.234,56
+                amount = parseFloat(cleanAmount.replace(/\./g, '').replace(',', '.'));
+              } else if (cleanAmount.includes(',')) {
+                // Format: 1234,56
+                amount = parseFloat(cleanAmount.replace(',', '.'));
+              } else {
+                // Format: 1234.56
+                amount = parseFloat(cleanAmount);
+              }
+
+              if (isNaN(amount)) {
+                errors.push(`Linha ${i + 2}: Valor inválido (${amountStr})`);
+                continue;
+              }
+
+              // Parse date (try different formats)
+              let transactionDate: Date;
+              try {
+                // Try ISO format first
+                if (dateStr.includes('-')) {
+                  transactionDate = new Date(dateStr);
+                } else if (dateStr.includes('/')) {
+                  // Try DD/MM/YYYY format
+                  const parts = dateStr.split('/');
+                  if (parts.length === 3) {
+                    transactionDate = new Date(parts[2] + '-' + parts[1].padStart(2, '0') + '-' + parts[0].padStart(2, '0'));
+                  } else {
+                    throw new Error('Invalid date format');
+                  }
+                } else {
+                  throw new Error('Invalid date format');
+                }
+
+                if (isNaN(transactionDate.getTime())) {
+                  throw new Error('Invalid date');
+                }
+              } catch {
+                errors.push(`Linha ${i + 2}: Data inválida (${dateStr})`);
+                continue;
+              }
+
+              // Determine transaction type
+              const type = amount > 0 ? 'income' : 'expense';
+              const finalAmount = type === 'expense' ? -Math.abs(amount) : Math.abs(amount);
+
+              transactions.push({
+                user_id: user.id,
+                account_id: accounts[0]?.id || '', // Use first account as default
+                description: description.trim(),
+                amount: finalAmount,
+                type,
+                date: transactionDate.toISOString().split('T')[0],
+                is_cleared: true,
+              });
+            }
+
+            if (errors.length > 0) {
+              setImportError(`Encontrados ${errors.length} erros:\n${errors.slice(0, 3).join('\n')}${errors.length > 3 ? '\n...' : ''}`);
+            }
+
+            if (transactions.length === 0) {
+              setImportError('Nenhuma transação válida encontrada no arquivo');
+              return;
+            }
+
+            // Insert transactions
+            const { error: insertError } = await supabase
+              .from('transactions')
+              .insert(transactions);
+
+            if (insertError) throw insertError;
+
+            setImportSuccess(`${transactions.length} transações importadas com sucesso!`);
+            
+            // Reset form
+            setImportFile(null);
+            if (event.target) {
+              (event.target as HTMLInputElement).value = '';
+            }
+            
+            // Call success callback after a delay
+            setTimeout(() => {
+              onSuccess?.();
+              onClose();
+            }, 2000);
+
+          } catch (err: any) {
+            console.error('Error processing CSV:', err);
+            setImportError('Erro ao processar arquivo: ' + err.message);
+          } finally {
+            setImportLoading(false);
+          }
+        },
+        error: (error) => {
+          console.error('CSV parsing error:', error);
+          setImportError('Erro ao ler arquivo CSV: ' + error.message);
+          setImportLoading(false);
+        }
+      });
+    } catch (err: any) {
+      console.error('Error reading file:', err);
+      setImportError('Erro ao ler arquivo: ' + err.message);
+      setImportLoading(false);
     }
   };
 
@@ -373,14 +535,91 @@ export function TransactionModal({ isOpen, onClose, onSuccess }: TransactionModa
               </button>
             </form>
           ) : (
-            <div className="text-center py-8">
-              <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Importar Transações</h3>
-              <p className="text-gray-500 mb-6">
-                Importe transações via CSV, OFX ou conecte sua conta bancária
-              </p>
-              <div className="space-y-3">
-                <button className="w-full border-2 border-dashed border-gray-300 rounded-lg py-4 px-6 text-gray-600 hover:border-green-400 hover:text-green-600 transition-colors">
+            <div className="space-y-6">
+              <div className="text-center">
+                <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Importar Transações</h3>
+                <p className="text-gray-500 mb-6">
+                  Importe suas transações via arquivo CSV
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Selecione o arquivo CSV
+                  </label>
+                  <input
+                    type="file"
+                    accept=".csv,.txt"
+                    onChange={handleFileUpload}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  />
+                  <div className="text-xs text-gray-500 mt-2">
+                    Formatos aceitos: CSV com colunas 'description', 'amount', 'date'
+                  </div>
+                </div>
+
+                {importFile && (
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <FileText className="w-4 h-4 text-gray-500" />
+                      <span className="font-medium text-sm">{importFile.name}</span>
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      Tamanho: {(importFile.size / 1024).toFixed(1)} KB
+                    </div>
+                  </div>
+                )}
+
+                {importError && (
+                  <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg whitespace-pre-line">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                      <span className="text-sm">{importError}</span>
+                    </div>
+                  </div>
+                )}
+
+                {importSuccess && (
+                  <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 bg-green-600 rounded-full flex items-center justify-center">
+                        <span className="text-white text-xs">✓</span>
+                      </div>
+                      <span className="text-sm">{importSuccess}</span>
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  onClick={processImportFile}
+                  disabled={!importFile || importLoading}
+                  className="w-full bg-green-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                >
+                  {importLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {importLoading ? 'Importando...' : 'Importar Transações'}
+                </button>
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="font-medium text-blue-900 mb-2">Formato do arquivo CSV:</h4>
+                <div className="text-sm text-blue-800 space-y-1">
+                  <div>• <strong>description</strong>: Descrição da transação</div>
+                  <div>• <strong>amount</strong>: Valor (positivo = receita, negativo = despesa)</div>
+                  <div>• <strong>date</strong>: Data no formato DD/MM/YYYY ou YYYY-MM-DD</div>
+                </div>
+                <div className="text-xs text-blue-600 mt-2">
+                  As transações serão adicionadas à primeira conta cadastrada
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
                   <Upload className="w-5 h-5 inline mr-2" />
                   Selecionar arquivo CSV/OFX
                 </button>

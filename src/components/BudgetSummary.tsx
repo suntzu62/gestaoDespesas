@@ -8,7 +8,7 @@ interface BudgetSummaryData {
   totalBudgeted: number;
   totalSpent: number;
   availableAmount: number;
-  moneyAge: number; // Placeholder for "Age of Money" calculation
+  moneyAge: number;
 }
 
 interface BudgetSummaryProps {
@@ -45,10 +45,10 @@ export function BudgetSummary({ currentDate }: BudgetSummaryProps) {
         financeQueries.getTotalSpent(user.id, currentMonth),
       ]);
 
+      // Calculate Age of Money
+      const moneyAge = await financeQueries.calculateAgeOfMoney(user.id);
+
       const availableAmount = totalBudgeted - totalSpent;
-      // Placeholder calculation for money age - in a real implementation,
-      // this would be calculated based on transaction history
-      const moneyAge = 15; // Days (placeholder)
 
       setData({
         totalBalance,
