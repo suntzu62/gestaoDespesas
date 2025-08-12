@@ -434,7 +434,7 @@ export const financeQueries = {
       console.error('Error getting budget vs actual:', error);
       return [];
     }
-  }
+  },
 
   // ============ CATEGORY GROUPS FUNCTIONS ============
 
