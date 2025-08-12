@@ -4,37 +4,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { BudgetContextProvider, useBudgetContext } from '../contexts/BudgetContext';
 import { useNavigate } from 'react-router-dom';
 import { BudgetSummary } from '../components/BudgetSummary';
-// import { CategoryTable } from '../components/CategoryTable';
+import { BudgetingModule } from '../components/BudgetingModule';
 import { TransactionModal } from '../components/TransactionModal';
 // import { GoalOverview } from '../components/GoalOverview';
 // import { ReportsSection } from '../components/ReportsSection';
-
-// Temporary placeholder components for the new modules
-function BudgetingModulePlaceholder() {
-  return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-      <h3 className="text-xl font-semibold text-gray-900 mb-4">Módulo de Orçamento (Em Breve)</h3>
-      <p className="text-gray-600 mb-4">
-        Aqui será o novo módulo de orçamento base-zero com grupos de categorias, 
-        similar ao YNAB.
-      </p>
-      <div className="space-y-4">
-        <div className="bg-gray-50 rounded-lg p-4">
-          <h4 className="font-medium text-gray-900 mb-2">🗂️ Grupos de Categorias</h4>
-          <p className="text-sm text-gray-600">Organize suas categorias em grupos como "Essenciais", "Lazer", etc.</p>
-        </div>
-        <div className="bg-gray-50 rounded-lg p-4">
-          <h4 className="font-medium text-gray-900 mb-2">💰 Orçamento Base-Zero</h4>
-          <p className="text-sm text-gray-600">Aloque cada centavo da sua renda para categorias específicas.</p>
-        </div>
-        <div className="bg-gray-50 rounded-lg p-4">
-          <h4 className="font-medium text-gray-900 mb-2">🎯 Metas por Categoria</h4>
-          <p className="text-sm text-gray-600">Defina objetivos de gasto ou poupança para cada categoria.</p>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function InspectorPanelPlaceholder() {
   const { selectedCategory } = useBudgetContext();
@@ -205,8 +178,8 @@ function DashboardContent() {
               {/* Budget Summary */}
               <BudgetSummary currentDate={currentDate} />
               
-              {/* Budget Module Placeholder */}
-              <BudgetingModulePlaceholder />
+              {/* Budget Module */}
+              <BudgetingModule />
             </div>
 
             {/* Right Column - Inspector Panel (1/3 width) */}
