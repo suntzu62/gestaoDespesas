@@ -620,18 +620,3 @@ export function TransactionModal({ isOpen, onClose, onSuccess }: TransactionModa
     </div>
   );
 }
-                  <Upload className="w-5 h-5 inline mr-2" />
-                  Selecionar arquivo CSV/OFX
-                </button>
-                <div className="text-sm text-gray-500">ou</div>
-                <button className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors">
-                  Conectar conta bancária
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
