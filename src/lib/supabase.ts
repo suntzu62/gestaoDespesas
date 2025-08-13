@@ -557,10 +557,7 @@ export const financeQueries = {
 
       const budgeted = (budget?.budgeted_amount || 0) + (budget?.rollover_amount || 0);
       const spent = transactions?.reduce((total, t) => total + Math.abs(t.amount || 0), 0) || 0;
-        const completionDate = new Date();
-        completionDate.setMonth(completionDate.getMonth() + monthsRemaining);
-        estimatedCompletion = completionDate.toISOString().split('T')[0];
-      }
+      const available = budgeted - spent;
 
       return {
         budgeted,
@@ -855,14 +852,18 @@ export const financeQueries = {
       let estimatedCompletion = undefined;
       if (goal.monthly_contribution > 0 && remaining > 0) {
         const monthsRemaining = Math.ceil(remaining / goal.monthly_contribution);
+        const completionDate = new Date();
+        completionDate.setMonth(completionDate.getMonth() + monthsRemaining);
+        estimatedCompletion = completionDate.toISOString().split('T')[0];
+      }
+
       return {
         current_amount,
         progress_percentage: Math.min(progress, 100),
         remaining_amount: remaining,
         estimated_completion_date: estimatedCompletion,
+      };
     } catch (error) {
-    } catch (error) {
-      console.error('Error calculating goal progress:', error);
       console.error('Error calculating goal progress:', error);
       return {
         current_amount: 0,
@@ -871,7 +872,7 @@ export const financeQueries = {
       };
     }
   },
-        const completionDate = new Date();
+
   // Get goals with progress for a category
   getCategoryGoalsWithProgress: async (userId: string, categoryId: string) => {
     try {
@@ -881,15 +882,16 @@ export const financeQueries = {
         .eq('user_id', userId)
         .eq('category_id', categoryId)
         .eq('is_active', true);
-        completionDate.setMonth(completionDate.getMonth() + monthsRemaining);
+
       if (error) throw error;
-        estimatedCompletion = completionDate.toISOString().split('T')[0];
+
       const goalsWithProgress = await Promise.all(
         (goals || []).map(async (goal) => {
+          const progress = await financeQueries.calculateGoalProgress(userId, goal.id);
           return { ...goal, ...progress };
+        })
       );
-    }
-  },
+
       return goalsWithProgress;
     } catch (error) {
       console.error('Error getting category goals with progress:', error);
