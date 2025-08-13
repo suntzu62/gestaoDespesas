@@ -17,8 +17,8 @@ export function CategoryGroup({
   
   const handleAddCategory = (e: React.MouseEvent) => {
     e.stopPropagation();
-    // TODO: Implement add category modal
-    console.log('Add category to group:', group.name);
+    // TODO: Implementar modal de adicionar categoria
+    console.log('Adicionar categoria ao grupo:', group.name);
   };
 
   return (
@@ -50,7 +50,7 @@ export function CategoryGroup({
           className="flex items-center gap-1 bg-blue-600 text-white px-3 py-1 rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors opacity-0 group-hover/header:opacity-100"
         >
           <Plus className="w-3 h-3" />
-          Add Category
+          Adicionar Categoria
         </button>
       </div>
 
@@ -59,12 +59,12 @@ export function CategoryGroup({
         <div className="space-y-1 ml-6">
           {group.categories.length === 0 ? (
             <div className="text-center py-4 text-gray-500">
-              <p className="text-sm">No categories in this group</p>
+              <p className="text-sm">Nenhuma categoria neste grupo</p>
               <button 
                 onClick={handleAddCategory}
                 className="text-blue-600 hover:text-blue-700 text-sm font-medium mt-1"
               >
-                + Add first category
+                + Adicionar primeira categoria
               </button>
             </div>
           ) : (

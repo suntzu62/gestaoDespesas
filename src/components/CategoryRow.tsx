@@ -4,8 +4,9 @@ import {
   Car, Coffee, Phone, Heart, Music, Gamepad2, Package, DollarSign, Building, 
   Bus, Pill, Utensils, Plane, Shirt, Smartphone, Play 
 } from 'lucide-react';
-import { Category } from '../lib/supabase';
+import { Category, Goal, financeQueries } from '../lib/supabase';
 import { useBudgetContext } from '../contexts/BudgetContext';
+import { useAuth } from '../contexts/AuthContext';
 
 interface CategoryRowProps {
   category: Category;
@@ -61,14 +62,73 @@ const getIconComponent = (iconName?: string) => {
 };
 
 export function CategoryRow({ category }: CategoryRowProps) {
+  const { user } = useAuth();
   const { selectedCategory, setSelectedCategory } = useBudgetContext();
-  const [loading, setLoading] = useState(false);
+  const [categoryGoal, setCategoryGoal] = useState<Goal | null>(null);
+  const [goalLoading, setGoalLoading] = useState(false);
 
   const isSelected = selectedCategory?.id === category.id;
   const IconComponent = getIconComponent(category.icon);
 
+  useEffect(() => {
+    if (user?.id) {
+      fetchCategoryGoal();
+    }
+  }, [user?.id, category.id]);
+
+  const fetchCategoryGoal = async () => {
+    if (!user?.id) return;
+    
+    setGoalLoading(true);
+    try {
+      const goal = await financeQueries.getGoalForCategory(user.id, category.id);
+      setCategoryGoal(goal);
+    } catch (error) {
+      console.error('Error fetching category goal:', error);
+      setCategoryGoal(null);
+    } finally {
+      setGoalLoading(false);
+    }
+  };
+
   const handleRowClick = () => {
     setSelectedCategory(category);
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    }).format(amount);
+  };
+
+  const getGoalStatus = () => {
+    if (goalLoading) {
+      return <span className="text-gray-500 text-sm">Carregando...</span>;
+    }
+
+    if (!categoryGoal) {
+      return <span className="text-gray-500 text-sm">Sem meta</span>;
+    }
+
+    const progress = categoryGoal.target_amount > 0 ? 
+      (categoryGoal.current_amount / categoryGoal.target_amount) * 100 : 0;
+    
+    if (progress >= 100) {
+      return <span className="text-green-600 text-sm font-medium">Meta atingida! 🎉</span>;
+    }
+
+    const remaining = categoryGoal.target_amount - categoryGoal.current_amount;
+    return (
+      <div className="text-right">
+        <div className="text-sm text-gray-600">
+          {formatCurrency(categoryGoal.current_amount)} / {formatCurrency(categoryGoal.target_amount)}
+        </div>
+        <div className="text-xs text-gray-500">
+          Faltam {formatCurrency(remaining)}
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -98,12 +158,8 @@ export function CategoryRow({ category }: CategoryRowProps) {
         </span>
       </div>
 
-      {/* Target Status */}
-      <div className="text-right">
-        <span className="text-gray-500 text-sm">
-          No target
-        </span>
-      </div>
+      {/* Goal Status */}
+      {getGoalStatus()}
     </div>
   );
 }

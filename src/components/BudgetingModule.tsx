@@ -103,7 +103,7 @@ export function BudgetingModule() {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
-          <span className="ml-2 text-gray-600">Loading budget...</span>
+          <span className="ml-2 text-gray-600">Carregando orçamento...</span>
         </div>
       </div>
     );
@@ -119,7 +119,7 @@ export function BudgetingModule() {
             onClick={() => fetchCategoryGroups()}
             className="text-blue-600 hover:text-blue-700 font-medium"
           >
-            Try again
+            Tentar novamente
           </button>
         </div>
       </div>
@@ -134,16 +134,16 @@ export function BudgetingModule() {
           <h2 className="text-lg font-semibold text-gray-900 capitalize">
             {monthName}
           </h2>
-              <span className="text-sm">Undo</span>
+              
           {/* Action Buttons */}
           <div className="flex items-center gap-2">
             <button
               onClick={handleRefresh}
               disabled={refreshing}
               className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-              title="Refresh"
+              title="Atualizar"
             >
-              <span className="text-sm">Redo</span>
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
             </button>
           </div>
         </div>
@@ -155,25 +155,25 @@ export function BudgetingModule() {
             className="flex items-center gap-2 bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
           >
             <Folder className="w-4 h-4" />
-            Category Group
+            Grupo de Categorias
           </button>
           
           <button
             onClick={handleUndo}
             className="flex items-center gap-1 text-gray-500 hover:text-gray-700 px-2 py-2 rounded-lg hover:bg-gray-100 transition-colors"
-            title="Undo"
+            title="Desfazer"
           >
             <Undo className="w-4 h-4" />
-            <span className="text-sm hidden sm:inline">Undo</span>
+            <span className="text-sm hidden sm:inline">Desfazer</span>
           </button>
           
           <button
             onClick={handleRedo}
             className="flex items-center gap-1 text-gray-500 hover:text-gray-700 px-2 py-2 rounded-lg hover:bg-gray-100 transition-colors"
-            title="Redo"
+            title="Refazer"
           >
             <Redo className="w-4 h-4" />
-            <span className="text-sm hidden sm:inline">Redo</span>
+            <span className="text-sm hidden sm:inline">Refazer</span>
           </button>
         </div>
       </div>
@@ -186,17 +186,17 @@ export function BudgetingModule() {
               <Folder className="w-8 h-8 text-gray-400" />
             </div>
             <h4 className="text-lg font-medium text-gray-900 mb-2">
-              No category groups found
+              Nenhum grupo de categorias encontrado
             </h4>
             <p className="text-gray-500 mb-6">
-              Create your first category group to start budgeting
+              Crie seu primeiro grupo de categorias para começar o orçamento
             </p>
             <button
               onClick={handleAddGroup}
               className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 mx-auto"
             >
               <Folder className="w-4 h-4" />
-              Create first group
+              Criar primeiro grupo
             </button>
           </div>
         ) : (
