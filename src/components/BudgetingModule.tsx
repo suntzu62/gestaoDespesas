@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { 
   Loader2, 
   AlertCircle, 
-  Plus, 
-  RefreshCw, 
-  FolderPlus,
-  Layers,
+  RefreshCw,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Folder,
+  Undo,
+  Redo
 } from 'lucide-react';
 import { CategoryGroupWithCategories, financeQueries } from '../lib/supabase';
 import { useBudgetContext } from '../contexts/BudgetContext';
@@ -25,7 +25,7 @@ export function BudgetingModule() {
 
   const currentMonth = currentDate.toISOString().slice(0, 7); // YYYY-MM
   const monthName = currentDate.toLocaleDateString('pt-BR', { 
-    month: 'long', 
+    month: 'short', 
     year: 'numeric' 
   });
 
@@ -88,17 +88,22 @@ export function BudgetingModule() {
     console.log('Add new group');
   };
 
-  const handleAddCategory = () => {
-    // TODO: Implement add category modal
-    console.log('Add new category');
+  const handleUndo = () => {
+    // TODO: Implement undo functionality
+    console.log('Undo last action');
+  };
+
+  const handleRedo = () => {
+    // TODO: Implement redo functionality
+    console.log('Redo last action');
   };
 
   if (loading) {
     return (
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 text-green-600 animate-spin" />
-          <span className="ml-2 text-gray-600">Carregando orçamento...</span>
+          <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+          <span className="ml-2 text-gray-600">Loading budget...</span>
         </div>
       </div>
     );
@@ -112,9 +117,9 @@ export function BudgetingModule() {
           <div className="text-red-600 mb-4">{error}</div>
           <button
             onClick={() => fetchCategoryGroups()}
-            className="text-green-600 hover:text-green-700 font-medium"
+            className="text-blue-600 hover:text-blue-700 font-medium"
           >
-            Tentar novamente
+            Try again
           </button>
         </div>
       </div>
@@ -124,101 +129,78 @@ export function BudgetingModule() {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200">
       {/* Header */}
-      <div className="p-6 border-b border-gray-200">
-        <div className="flex justify-between items-center">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <Layers className="w-5 h-5 text-green-600" />
-              Orçamento Base Zero
-            </h3>
-            <p className="text-gray-600 text-sm mt-1 capitalize">
-              {monthName}
-            </p>
-          </div>
+      <div className="p-4 border-b border-gray-200">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900 capitalize">
+            {monthName}
+          </h2>
           
+          {/* Action Buttons */}
           <div className="flex items-center gap-2">
-            {/* Expand/Collapse All */}
-            <button
-              onClick={handleToggleAllGroups}
-              className="flex items-center gap-1 text-gray-500 hover:text-gray-700 px-2 py-1 rounded hover:bg-gray-100 transition-colors"
-              title={Object.values(expandedGroups).every(expanded => expanded) ? "Recolher todos" : "Expandir todos"}
-            >
-              {Object.values(expandedGroups).every(expanded => expanded) ? (
-                <ChevronUp className="w-4 h-4" />
-              ) : (
-                <ChevronDown className="w-4 h-4" />
-              )}
-              <span className="text-sm hidden sm:inline">
-                {Object.values(expandedGroups).every(expanded => expanded) ? "Recolher" : "Expandir"}
-              </span>
-            </button>
-
-            {/* Refresh */}
             <button
               onClick={handleRefresh}
               disabled={refreshing}
-              className="flex items-center gap-1 text-gray-500 hover:text-gray-700 px-2 py-1 rounded hover:bg-gray-100 transition-colors"
-              title="Atualizar dados"
+              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              title="Refresh"
             >
               <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-              <span className="text-sm hidden sm:inline">Atualizar</span>
             </button>
-
-            {/* Add Actions */}
-            <div className="flex gap-2">
-              <button
-                onClick={handleAddGroup}
-                className="flex items-center gap-1 bg-blue-100 text-blue-700 px-3 py-1 rounded-lg hover:bg-blue-200 transition-colors"
-                title="Novo grupo"
-              >
-                <FolderPlus className="w-4 h-4" />
-                <span className="text-sm hidden sm:inline">Grupo</span>
-              </button>
-              <button
-                onClick={handleAddCategory}
-                className="flex items-center gap-1 bg-green-600 text-white px-3 py-1 rounded-lg hover:bg-green-700 transition-colors"
-                title="Nova categoria"
-              >
-                <Plus className="w-4 h-4" />
-                <span className="text-sm hidden sm:inline">Categoria</span>
-              </button>
-            </div>
           </div>
+        </div>
+
+        {/* Control Buttons */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleAddGroup}
+            className="flex items-center gap-2 bg-blue-600 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+          >
+            <Folder className="w-4 h-4" />
+            Category Group
+          </button>
+          
+          <button
+            onClick={handleUndo}
+            className="flex items-center gap-1 text-gray-500 hover:text-gray-700 px-2 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+            title="Undo"
+          >
+            <Undo className="w-4 h-4" />
+            <span className="text-sm hidden sm:inline">Undo</span>
+          </button>
+          
+          <button
+            onClick={handleRedo}
+            className="flex items-center gap-1 text-gray-500 hover:text-gray-700 px-2 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+            title="Redo"
+          >
+            <Redo className="w-4 h-4" />
+            <span className="text-sm hidden sm:inline">Redo</span>
+          </button>
         </div>
       </div>
 
       {/* Content */}
-      <div className="p-6">
+      <div className="p-4">
         {categoryGroups.length === 0 ? (
           <div className="text-center py-12">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Layers className="w-8 h-8 text-gray-400" />
+              <Folder className="w-8 h-8 text-gray-400" />
             </div>
             <h4 className="text-lg font-medium text-gray-900 mb-2">
-              Nenhum grupo de categorias encontrado
+              No category groups found
             </h4>
             <p className="text-gray-500 mb-6">
-              Crie seus primeiros grupos e categorias para começar a usar o orçamento base zero
+              Create your first category group to start budgeting
             </p>
-            <div className="flex gap-3 justify-center">
-              <button
-                onClick={handleAddGroup}
-                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-              >
-                <FolderPlus className="w-4 h-4" />
-                Criar primeiro grupo
-              </button>
-              <button
-                onClick={handleAddCategory}
-                className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                Criar primeira categoria
-              </button>
-            </div>
+            <button
+              onClick={handleAddGroup}
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 mx-auto"
+            >
+              <Folder className="w-4 h-4" />
+              Create first group
+            </button>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {categoryGroups.map((group) => (
               <CategoryGroup
                 key={group.id}
@@ -227,30 +209,6 @@ export function BudgetingModule() {
                 onToggleExpanded={() => handleToggleGroup(group.id)}
               />
             ))}
-            
-            {/* Summary Footer */}
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-                <div className="bg-blue-50 rounded-lg p-4">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {categoryGroups.length}
-                  </div>
-                  <div className="text-sm text-blue-600">
-                    {categoryGroups.length === 1 ? 'Grupo' : 'Grupos'}
-                  </div>
-                </div>
-                <div className="bg-purple-50 rounded-lg p-4">
-                  <div className="text-2xl font-bold text-purple-600">
-                    {categoryGroups.reduce((total, group) => total + group.categories.length, 0)}
-                  </div>
-                  <div className="text-sm text-purple-600">Categorias</div>
-                </div>
-                <div className="bg-green-50 rounded-lg p-4">
-                  <div className="text-2xl font-bold text-green-600">100%</div>
-                  <div className="text-sm text-green-600">Orçamento alocado</div>
-                </div>
-              </div>
-            </div>
           </div>
         )}
       </div>
