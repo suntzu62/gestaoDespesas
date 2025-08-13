@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2, AlertCircle, Home, Zap, Tv, Shield, GraduationCap, Dumbbell, ShoppingCart, Car, Coffee, Phone, Heart, Music, Gamepad2, Package, DollarSign } from 'lucide-react';
+import { 
+  Loader2, AlertCircle, Home, Zap, Tv, Shield, GraduationCap, Dumbbell, ShoppingCart, 
+  Car, Coffee, Phone, Heart, Music, Gamepad2, Package, DollarSign, Building, 
+  Bus, Pill, Utensils, Plane, Shirt, Smartphone, Play 
+} from 'lucide-react';
 import { Category } from '../lib/supabase';
 import { useBudgetContext } from '../contexts/BudgetContext';
 
@@ -42,6 +46,14 @@ const getIconComponent = (iconName?: string) => {
     'shopping': Package,
     'dollar-sign': DollarSign,
     'money': DollarSign,
+    'building': Building,
+    'bus': Bus,
+    'pill': Pill,
+    'utensils': Utensils,
+    'plane': Plane,
+    'shirt': Shirt,
+    'smartphone': Smartphone,
+    'play': Play,
   };
 
   const IconComponent = iconMap[iconName?.toLowerCase() || ''] || Package;

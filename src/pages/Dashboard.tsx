@@ -1,5 +1,5 @@
 import React from 'react';
-import { TrendingUp, LogOut, User, Settings, Plus, ChevronLeft, ChevronRight, RefreshCw, Wifi, WifiOff } from 'lucide-react';
+import { TrendingUp, LogOut, User, Settings, Plus, ChevronLeft, ChevronRight, RefreshCw, Wifi, WifiOff, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { BudgetContextProvider, useBudgetContext } from '../contexts/BudgetContext';
 import { useNavigate } from 'react-router-dom';
@@ -7,6 +7,8 @@ import { BudgetSummary } from '../components/BudgetSummary';
 import { BudgetingModule } from '../components/BudgetingModule';
 import { TransactionModal } from '../components/TransactionModal';
 import { InspectorPanel } from '../components/InspectorPanel';
+import { OnboardingSteps } from '../components/OnboardingSteps';
+import { initializeUserBudget } from '../utils/dbInitializer';
 // import { GoalOverview } from '../components/GoalOverview';
 // import { ReportsSection } from '../components/ReportsSection';
 
@@ -17,6 +19,47 @@ function DashboardContent() {
   const navigate = useNavigate();
   const [isTransactionModalOpen, setIsTransactionModalOpen] = React.useState(false);
   const [lastSyncTime] = React.useState(new Date());
+  const [isInitializing, setIsInitializing] = React.useState(true);
+  const [initializationError, setInitializationError] = React.useState<string>('');
+
+  // Initialize user budget data on first load
+  React.useEffect(() => {
+    let mounted = true;
+
+    const initializeBudget = async () => {
+      if (!user?.id) return;
+
+      try {
+        console.log('🚀 [Dashboard] Inicializando dados do usuário...');
+        setIsInitializing(true);
+        setInitializationError('');
+
+        const wasInitialized = await initializeUserBudget(user.id);
+        
+        if (wasInitialized) {
+          console.log('✅ [Dashboard] Dados iniciais criados, atualizando interface...');
+          refreshBudget(); // Refresh the budget data after initialization
+        } else {
+          console.log('ℹ️ [Dashboard] Usuário já possui dados');
+        }
+      } catch (error) {
+        console.error('❌ [Dashboard] Erro na inicialização:', error);
+        if (mounted) {
+          setInitializationError('Erro ao inicializar dados do orçamento');
+        }
+      } finally {
+        if (mounted) {
+          setIsInitializing(false);
+        }
+      }
+    };
+
+    initializeBudget();
+
+    return () => {
+      mounted = false;
+    };
+  }, [user?.id, refreshBudget]);
 
   const handleSignOut = async () => {
     try {
@@ -124,6 +167,40 @@ function DashboardContent() {
             </div>
           </div>
 
+          {/* Initialization Loading State */}
+          {isInitializing && (
+            <div className="mb-8 bg-blue-50 border border-blue-200 rounded-xl p-6">
+              <div className="flex items-center gap-3">
+                <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                <div>
+                  <h3 className="font-semibold text-blue-900">Preparando seu orçamento...</h3>
+                  <p className="text-blue-700 text-sm">
+                    Configurando suas categorias e grupos iniciais
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Initialization Error */}
+          {initializationError && (
+            <div className="mb-8 bg-red-50 border border-red-200 rounded-xl p-6">
+              <div className="flex items-center gap-3">
+                <AlertCircle className="w-6 h-6 text-red-600" />
+                <div>
+                  <h3 className="font-semibold text-red-900">Erro na inicialização</h3>
+                  <p className="text-red-700 text-sm">{initializationError}</p>
+                  <button 
+                    onClick={() => window.location.reload()} 
+                    className="text-red-600 hover:text-red-700 font-medium text-sm mt-1"
+                  >
+                    Tentar novamente
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Two Column Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Left Column - Budget Module (2/3 width) */}
@@ -141,6 +218,9 @@ function DashboardContent() {
             </div>
           </div>
         </main>
+
+        {/* Onboarding Steps (Fixed at bottom) */}
+        <OnboardingSteps />
       </div>
 
       {/* Transaction Modal */}

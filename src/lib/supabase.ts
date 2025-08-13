@@ -667,5 +667,76 @@ export const financeQueries = {
 
     if (error) throw error;
     return data;
+  },
+
+  // ============ CRUD OPERATIONS FOR CATEGORIES AND GROUPS ============
+
+  // Create a new category
+  createCategory: async (userId: string, categoryData: {
+    name: string;
+    type: CategoryType;
+    group_id?: string;
+    parent_category_id?: string;
+    budgeted_amount?: number;
+    rollover_enabled?: boolean;
+    color?: string;
+    icon?: string;
+    sort_order?: number;
+  }) => {
+    const { data, error } = await supabase
+      .from('categories')
+      .insert({
+        user_id: userId,
+        name: categoryData.name,
+        type: categoryData.type,
+        group_id: categoryData.group_id || null,
+        parent_category_id: categoryData.parent_category_id || null,
+        budgeted_amount: categoryData.budgeted_amount || 0,
+        rollover_enabled: categoryData.rollover_enabled ?? true,
+        color: categoryData.color || '#6B7280',
+        icon: categoryData.icon || 'package',
+        is_hidden: false,
+        sort_order: categoryData.sort_order || 0,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  // Update category
+  updateCategory: async (categoryId: string, updates: Partial<Category>) => {
+    const { data, error } = await supabase
+      .from('categories')
+      .update(updates)
+      .eq('id', categoryId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  // Delete category
+  deleteCategory: async (categoryId: string) => {
+    const { error } = await supabase
+      .from('categories')
+      .delete()
+      .eq('id', categoryId);
+
+    if (error) throw error;
+  },
+
+  // Check if user has any category groups (used for initialization)
+  hasExistingData: async (userId: string): Promise<boolean> => {
+    const { data, error } = await supabase
+      .from('category_groups')
+      .select('id')
+      .eq('user_id', userId)
+      .limit(1);
+
+    if (error) throw error;
+    return data ? data.length > 0 : false;
   }
 };

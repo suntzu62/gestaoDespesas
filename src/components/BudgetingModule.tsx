@@ -134,7 +134,7 @@ export function BudgetingModule() {
           <h2 className="text-lg font-semibold text-gray-900 capitalize">
             {monthName}
           </h2>
-          
+              <span className="text-sm">Undo</span>
           {/* Action Buttons */}
           <div className="flex items-center gap-2">
             <button
@@ -143,7 +143,7 @@ export function BudgetingModule() {
               className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
               title="Refresh"
             >
-              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              <span className="text-sm">Redo</span>
             </button>
           </div>
         </div>
