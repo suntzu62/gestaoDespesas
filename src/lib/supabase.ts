@@ -557,7 +557,10 @@ export const financeQueries = {
 
       const budgeted = (budget?.budgeted_amount || 0) + (budget?.rollover_amount || 0);
       const spent = transactions?.reduce((total, t) => total + Math.abs(t.amount || 0), 0) || 0;
-      const available = budgeted - spent;
+        const completionDate = new Date();
+        completionDate.setMonth(completionDate.getMonth() + monthsRemaining);
+        estimatedCompletion = completionDate.toISOString().split('T')[0];
+      }
 
       return {
         budgeted,
@@ -857,8 +860,9 @@ export const financeQueries = {
         progress_percentage: Math.min(progress, 100),
         remaining_amount: remaining,
         estimated_completion_date: estimatedCompletion,
-      };
     } catch (error) {
+    } catch (error) {
+      console.error('Error calculating goal progress:', error);
       console.error('Error calculating goal progress:', error);
       return {
         current_amount: 0,
@@ -882,11 +886,10 @@ export const financeQueries = {
         estimatedCompletion = completionDate.toISOString().split('T')[0];
       const goalsWithProgress = await Promise.all(
         (goals || []).map(async (goal) => {
-          const progress = await financeQueries.calculateGoalProgress(userId, goal.id);
           return { ...goal, ...progress };
-        })
       );
-      }
+    }
+  },
       return goalsWithProgress;
     } catch (error) {
       console.error('Error getting category goals with progress:', error);
