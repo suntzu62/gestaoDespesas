@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ChevronDown, ChevronRight, Plus } from 'lucide-react';
 import { CategoryGroupWithCategories } from '../lib/supabase';
 import { CategoryRow } from './CategoryRow';
+import { CategoryModal } from './CategoryModal';
+import { useBudgetContext } from '../contexts/BudgetContext';
 
 interface CategoryGroupProps {
   group: CategoryGroupWithCategories;
@@ -14,11 +16,12 @@ export function CategoryGroup({
   isExpanded = true, 
   onToggleExpanded 
 }: CategoryGroupProps) {
+  const { refreshBudget } = useBudgetContext();
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   
   const handleAddCategory = (e: React.MouseEvent) => {
     e.stopPropagation();
-    // TODO: Implementar modal de adicionar categoria
-    console.log('Adicionar categoria ao grupo:', group.name);
+    setIsCategoryModalOpen(true);
   };
 
   return (
@@ -74,6 +77,17 @@ export function CategoryGroup({
           )}
         </div>
       )}
+
+      {/* Category Modal */}
+      <CategoryModal
+        isOpen={isCategoryModalOpen}
+        onClose={() => setIsCategoryModalOpen(false)}
+        preselectedGroupId={group.id}
+        onSuccess={() => {
+          setIsCategoryModalOpen(false);
+          refreshBudget();
+        }}
+      />
     </div>
   );
 }
