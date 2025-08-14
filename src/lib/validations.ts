@@ -60,3 +60,38 @@ export const updateGoalSchema = goalSchema.partial();
 export type GoalData = z.infer<typeof goalSchema>;
 export type CreateGoalData = z.infer<typeof createGoalSchema>;
 export type UpdateGoalData = z.infer<typeof updateGoalSchema>;
+
+// Category Group validation schemas
+export const categoryGroupSchema = z.object({
+  name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres').max(100, 'Nome muito longo'),
+  sort_order: z.number().min(0, 'Ordem deve ser maior ou igual a 0').optional(),
+});
+
+export const createCategoryGroupSchema = categoryGroupSchema;
+export const updateCategoryGroupSchema = categoryGroupSchema.partial();
+
+export type CategoryGroupData = z.infer<typeof categoryGroupSchema>;
+export type CreateCategoryGroupData = z.infer<typeof createCategoryGroupSchema>;
+export type UpdateCategoryGroupData = z.infer<typeof updateCategoryGroupSchema>;
+
+// Category validation schemas
+export const categorySchema = z.object({
+  name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres').max(100, 'Nome muito longo'),
+  type: z.enum(['spending', 'saving', 'income'], {
+    errorMap: () => ({ message: 'Tipo de categoria inválido' })
+  }),
+  group_id: z.string().optional(),
+  parent_category_id: z.string().optional(),
+  budgeted_amount: z.number().min(0, 'Valor orçado não pode ser negativo').optional(),
+  rollover_enabled: z.boolean().optional(),
+  color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Cor deve estar no formato hexadecimal (#RRGGBB)').optional(),
+  icon: z.string().optional(),
+  sort_order: z.number().min(0, 'Ordem deve ser maior ou igual a 0').optional(),
+});
+
+export const createCategorySchema = categorySchema;
+export const updateCategorySchema = categorySchema.partial();
+
+export type CategoryData = z.infer<typeof categorySchema>;
+export type CreateCategoryData = z.infer<typeof createCategorySchema>;
+export type UpdateCategoryData = z.infer<typeof updateCategorySchema>;
