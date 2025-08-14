@@ -3,10 +3,10 @@ import { TrendingUp, LogOut, User, Settings, Plus, ChevronLeft, ChevronRight, Re
 import { useAuth } from '../contexts/AuthContext';
 import { BudgetContextProvider, useBudgetContext } from '../contexts/BudgetContext';
 import { useNavigate } from 'react-router-dom';
-import { BudgetSummary } from '../components/BudgetSummary';
-import { BudgetingModule } from '../components/BudgetingModule';
+import { BudgetLayout } from '../components/BudgetLayout';
+import { CategoryPane } from '../components/CategoryPane';
+import { InspectorPane } from '../components/InspectorPane';
 import { TransactionModal } from '../components/TransactionModal';
-import { InspectorPanel } from '../components/InspectorPanel';
 import { OnboardingSteps } from '../components/OnboardingSteps';
 import { initializeUserBudget } from '../utils/dbInitializer';
 // import { GoalOverview } from '../components/GoalOverview';
@@ -17,10 +17,29 @@ function DashboardContent() {
   const { user, signOut } = useAuth();
   const { currentDate, navigateMonth, refreshBudget } = useBudgetContext();
   const navigate = useNavigate();
+  const headerRef = React.useRef<HTMLElement>(null);
   const [isTransactionModalOpen, setIsTransactionModalOpen] = React.useState(false);
+  const [headerHeight, setHeaderHeight] = React.useState(0);
   const [lastSyncTime] = React.useState(new Date());
   const [isInitializing, setIsInitializing] = React.useState(true);
   const [initializationError, setInitializationError] = React.useState<string>('');
+
+  // Calculate header height
+  React.useEffect(() => {
+    const updateHeaderHeight = () => {
+      if (headerRef.current) {
+        const height = headerRef.current.offsetHeight;
+        setHeaderHeight(height);
+      }
+    };
+
+    updateHeaderHeight();
+    window.addEventListener('resize', updateHeaderHeight);
+    
+    return () => {
+      window.removeEventListener('resize', updateHeaderHeight);
+    };
+  }, []);
 
   // Initialize user budget data on first load
   React.useEffect(() => {
@@ -84,8 +103,8 @@ function DashboardContent() {
 
   return (
     <>
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-        <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
+    <div className="bg-gray-50">
+        <header ref={headerRef} className="bg-white border-b border-gray-200 sticky top-0 z-40">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center py-4">
               <div className="flex items-center space-x-2">
@@ -127,52 +146,51 @@ function DashboardContent() {
           </div>
         </header>
 
-        <main className="flex-1 flex min-h-0">
-          {/* Left Column - Scrollable Content */}
-          <div className="flex-1 overflow-y-auto py-8 px-4 sm:px-6 lg:px-8 bg-gray-50">
-            <div className="max-w-5xl mx-auto">
-              {/* Header with Month Navigation and Summary */}
-              <div className="mb-8">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h1 className="text-3xl font-bold text-gray-900">
-                      Olá, {user?.name?.split(' ')[0]}! 👋
-                    </h1>
-                    <div className="flex items-center gap-4 mt-4">
-                      <button
-                        onClick={() => navigateMonth('prev')}
-                        className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                      >
-                        <ChevronLeft className="w-5 h-5" />
-                      </button>
-                      <h2 className="text-xl font-semibold text-gray-700 min-w-48 text-center capitalize">
-                        {formatMonthYear(currentDate)}
-                      </h2>
-                      <button
-                        onClick={() => navigateMonth('next')}
-                        className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                      >
-                        <ChevronRight className="w-5 h-5" />
-                      </button>
-                    </div>
-                    <p className="text-gray-600 mt-2">
-                      Bem-vindo ao seu painel de controle financeiro
-                    </p>
+        <main className="bg-gray-50">
+          <div className="max-w-7xl mx-auto">
+            {/* Header with Month Navigation */}
+            <div className="px-4 sm:px-6 lg:px-8 py-6">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900">
+                    Olá, {user?.name?.split(' ')[0]}! 👋
+                  </h1>
+                  <div className="flex items-center gap-4 mt-4">
+                    <button
+                      onClick={() => navigateMonth('prev')}
+                      className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <h2 className="text-xl font-semibold text-gray-700 min-w-48 text-center capitalize">
+                      {formatMonthYear(currentDate)}
+                    </h2>
+                    <button
+                      onClick={() => navigateMonth('next')}
+                      className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
                   </div>
-                  
-                  <button
-                    onClick={() => setIsTransactionModalOpen(true)}
-                    className="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center gap-2 shadow-sm"
-                  >
-                    <Plus className="w-5 h-5" />
-                    Nova Transação
-                  </button>
+                  <p className="text-gray-600 mt-2">
+                    Bem-vindo ao seu painel de controle financeiro
+                  </p>
                 </div>
+                
+                <button
+                  onClick={() => setIsTransactionModalOpen(true)}
+                  className="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center gap-2 shadow-sm"
+                >
+                  <Plus className="w-5 h-5" />
+                  Nova Transação
+                </button>
               </div>
+            </div>
 
-              {/* Initialization Loading State */}
-              {isInitializing && (
-                <div className="mb-8 bg-blue-50 border border-blue-200 rounded-xl p-6">
+            {/* Initialization Loading State */}
+            {isInitializing && (
+              <div className="px-4 sm:px-6 lg:px-8 mb-6">
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
                   <div className="flex items-center gap-3">
                     <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                     <div>
@@ -183,11 +201,13 @@ function DashboardContent() {
                     </div>
                   </div>
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* Initialization Error */}
-              {initializationError && (
-                <div className="mb-8 bg-red-50 border border-red-200 rounded-xl p-6">
+            {/* Initialization Error */}
+            {initializationError && (
+              <div className="px-4 sm:px-6 lg:px-8 mb-6">
+                <div className="bg-red-50 border border-red-200 rounded-xl p-6">
                   <div className="flex items-center gap-3">
                     <AlertCircle className="w-6 h-6 text-red-600" />
                     <div>
@@ -202,22 +222,17 @@ function DashboardContent() {
                     </div>
                   </div>
                 </div>
-              )}
-
-              {/* Main Content */}
-              <div className="space-y-6">
-                {/* Budget Summary */}
-                <BudgetSummary currentDate={currentDate} />
-                
-                {/* Budget Module */}
-                <BudgetingModule />
               </div>
-            </div>
-          </div>
+            )}
 
-          {/* Right Column - Fixed Inspector Panel */}
-          <div className="w-96 bg-white shadow-lg border-l border-gray-200 overflow-y-auto flex-shrink-0">
-            <InspectorPanel />
+            {/* Main Layout with Grid */}
+            <BudgetLayout headerHeight={headerHeight}>
+              {/* Left Column - Category Pane */}
+              <CategoryPane currentDate={currentDate} />
+              
+              {/* Right Column - Inspector Pane */}
+              <InspectorPane headerHeight={headerHeight} />
+            </BudgetLayout>
           </div>
         </main>
 

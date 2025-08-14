@@ -127,7 +127,7 @@ export function BudgetingModule() {
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+    <div>
       {/* Header */}
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center justify-between mb-4">

@@ -103,7 +103,7 @@ export function InspectorPanel() {
 
   if (!selectedCategory) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div className="h-full overflow-y-auto p-6">
         <div className="text-center py-12">
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Target className="w-8 h-8 text-gray-400" />
@@ -133,7 +133,7 @@ export function InspectorPanel() {
 
   return (
     <>
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div className="h-full overflow-y-auto p-6">
         {/* Category Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">

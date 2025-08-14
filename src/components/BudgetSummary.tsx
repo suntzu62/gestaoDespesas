@@ -121,7 +121,7 @@ export function BudgetSummary({ currentDate }: BudgetSummaryProps) {
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+    <div>
       <div className="flex justify-between items-center mb-6">
         <h3 className="text-lg font-semibold text-gray-900">Visão Geral</h3>
         <button
