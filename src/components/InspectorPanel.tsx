@@ -4,6 +4,7 @@ import { useBudgetContext } from '../contexts/BudgetContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Goal, financeQueries } from '../lib/supabase';
 import { TargetModal } from './TargetModal';
+import { CategoryModal } from './CategoryModal';
 
 const getIconComponent = (iconName?: string) => {
   const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -48,10 +49,12 @@ const getIconComponent = (iconName?: string) => {
 
 export function InspectorPanel() {
   const { user } = useAuth();
-  const { selectedCategory } = useBudgetContext();
+  const { selectedCategory, setSelectedCategory, refreshBudget } = useBudgetContext();
   const [categoryGoal, setCategoryGoal] = useState<Goal | null>(null);
   const [goalLoading, setGoalLoading] = useState(false);
   const [isTargetModalOpen, setIsTargetModalOpen] = useState(false);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
     if (selectedCategory && user?.id) {
@@ -78,6 +81,7 @@ export function InspectorPanel() {
 
   const handleTargetModalSuccess = () => {
     fetchCategoryGoal(); // Refresh goal data
+    refreshBudget(); // Refresh budget data
     setIsTargetModalOpen(false);
   };
 
@@ -122,13 +126,33 @@ export function InspectorPanel() {
   const IconComponent = getIconComponent(selectedCategory.icon);
   
   const handleEdit = () => {
-    // TODO: Implementar modal de edição de categoria
-    console.log('Editar categoria:', selectedCategory.name);
+    setIsCategoryModalOpen(true);
   };
 
-  const handleDelete = () => {
-    // TODO: Implementar confirmação de exclusão de categoria
-    console.log('Excluir categoria:', selectedCategory.name);
+  const handleDelete = async () => {
+    if (!selectedCategory || !user?.id) return;
+
+    if (!confirm(`Tem certeza de que deseja excluir a categoria "${selectedCategory.name}"? Todas as transações associadas ficarão sem categoria.`)) {
+      return;
+    }
+
+    setDeleteLoading(true);
+
+    try {
+      await financeQueries.deleteCategory(selectedCategory.id);
+      refreshBudget();
+      setSelectedCategory(null); // Clear selection after delete
+    } catch (err: any) {
+      console.error('Error deleting category:', err);
+      // TODO: Show error toast/notification
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const handleCategoryModalSuccess = () => {
+    setIsCategoryModalOpen(false);
+    refreshBudget(); // Refresh budget data
   };
 
   return (
@@ -155,10 +179,15 @@ export function InspectorPanel() {
             </button>
             <button
               onClick={handleDelete}
-              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              disabled={deleteLoading}
+              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
               title="Excluir categoria"
             >
-              <Trash2 className="w-4 h-4" />
+              {deleteLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Trash2 className="w-4 h-4" />
+              )}
             </button>
           </div>
         </div>
@@ -287,6 +316,14 @@ export function InspectorPanel() {
         categoryName={selectedCategory.name}
         existingGoal={categoryGoal}
         onSuccess={handleTargetModalSuccess}
+      />
+
+      {/* Category Modal */}
+      <CategoryModal
+        isOpen={isCategoryModalOpen}
+        onClose={() => setIsCategoryModalOpen(false)}
+        existingCategory={selectedCategory}
+        onSuccess={handleCategoryModalSuccess}
       />
     </>
   );
