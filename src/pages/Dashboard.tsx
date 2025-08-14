@@ -83,8 +83,7 @@ function DashboardContent() {
   };
 
   return (
-    <>
-      <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
         <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center py-4">
@@ -127,109 +126,110 @@ function DashboardContent() {
           </div>
         </header>
 
-        <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-          {/* Header with Month Navigation and Summary */}
-          <div className="mb-8">
-            <div className="flex justify-between items-center">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">
-                  Olá, {user?.name?.split(' ')[0]}! 👋
-                </h1>
-                <div className="flex items-center gap-4 mt-4">
+        <main className="flex-1 flex min-h-0">
+          {/* Left Column - Scrollable Content */}
+          <div className="flex-1 overflow-y-auto py-8 px-4 sm:px-6 lg:px-8 bg-gray-50">
+            <div className="max-w-5xl mx-auto">
+              {/* Header with Month Navigation and Summary */}
+              <div className="mb-8">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h1 className="text-3xl font-bold text-gray-900">
+                      Olá, {user?.name?.split(' ')[0]}! 👋
+                    </h1>
+                    <div className="flex items-center gap-4 mt-4">
+                      <button
+                        onClick={() => navigateMonth('prev')}
+                        className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                      >
+                        <ChevronLeft className="w-5 h-5" />
+                      </button>
+                      <h2 className="text-xl font-semibold text-gray-700 min-w-48 text-center capitalize">
+                        {formatMonthYear(currentDate)}
+                      </h2>
+                      <button
+                        onClick={() => navigateMonth('next')}
+                        className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                      >
+                        <ChevronRight className="w-5 h-5" />
+                      </button>
+                    </div>
+                    <p className="text-gray-600 mt-2">
+                      Bem-vindo ao seu painel de controle financeiro
+                    </p>
+                  </div>
+                  
                   <button
-                    onClick={() => navigateMonth('prev')}
-                    className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                    onClick={() => setIsTransactionModalOpen(true)}
+                    className="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center gap-2 shadow-sm"
                   >
-                    <ChevronLeft className="w-5 h-5" />
-                  </button>
-                  <h2 className="text-xl font-semibold text-gray-700 min-w-48 text-center capitalize">
-                    {formatMonthYear(currentDate)}
-                  </h2>
-                  <button
-                    onClick={() => navigateMonth('next')}
-                    className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    <ChevronRight className="w-5 h-5" />
+                    <Plus className="w-5 h-5" />
+                    Nova Transação
                   </button>
                 </div>
-                <p className="text-gray-600 mt-2">
-                  Bem-vindo ao seu painel de controle financeiro
-                </p>
               </div>
-              
-              <button
-                onClick={() => setIsTransactionModalOpen(true)}
-                className="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center gap-2 shadow-sm"
-              >
-                <Plus className="w-5 h-5" />
-                Nova Transação
-              </button>
+
+              {/* Initialization Loading State */}
+              {isInitializing && (
+                <div className="mb-8 bg-blue-50 border border-blue-200 rounded-xl p-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                    <div>
+                      <h3 className="font-semibold text-blue-900">Preparando seu orçamento...</h3>
+                      <p className="text-blue-700 text-sm">
+                        Configurando suas categorias e grupos iniciais
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Initialization Error */}
+              {initializationError && (
+                <div className="mb-8 bg-red-50 border border-red-200 rounded-xl p-6">
+                  <div className="flex items-center gap-3">
+                    <AlertCircle className="w-6 h-6 text-red-600" />
+                    <div>
+                      <h3 className="font-semibold text-red-900">Erro na inicialização</h3>
+                      <p className="text-red-700 text-sm">{initializationError}</p>
+                      <button 
+                        onClick={() => window.location.reload()} 
+                        className="text-red-600 hover:text-red-700 font-medium text-sm mt-1"
+                      >
+                        Tentar novamente
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Main Content */}
+              <div className="space-y-6">
+                {/* Budget Summary */}
+                <BudgetSummary currentDate={currentDate} />
+                
+                {/* Budget Module */}
+                <BudgetingModule />
+              </div>
             </div>
           </div>
 
-          {/* Initialization Loading State */}
-          {isInitializing && (
-            <div className="mb-8 bg-blue-50 border border-blue-200 rounded-xl p-6">
-              <div className="flex items-center gap-3">
-                <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                <div>
-                  <h3 className="font-semibold text-blue-900">Preparando seu orçamento...</h3>
-                  <p className="text-blue-700 text-sm">
-                    Configurando suas categorias e grupos iniciais
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Initialization Error */}
-          {initializationError && (
-            <div className="mb-8 bg-red-50 border border-red-200 rounded-xl p-6">
-              <div className="flex items-center gap-3">
-                <AlertCircle className="w-6 h-6 text-red-600" />
-                <div>
-                  <h3 className="font-semibold text-red-900">Erro na inicialização</h3>
-                  <p className="text-red-700 text-sm">{initializationError}</p>
-                  <button 
-                    onClick={() => window.location.reload()} 
-                    className="text-red-600 hover:text-red-700 font-medium text-sm mt-1"
-                  >
-                    Tentar novamente
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Two Column Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Left Column - Budget Module (2/3 width) */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Budget Summary */}
-              <BudgetSummary currentDate={currentDate} />
-              
-              {/* Budget Module */}
-              <BudgetingModule />
-            </div>
-
-            {/* Right Column - Inspector Panel (1/3 width) */}
-            <div className="lg:col-span-1">
-              <InspectorPanel />
-            </div>
+          {/* Right Column - Fixed Inspector Panel */}
+          <div className="w-96 bg-white shadow-lg border-l border-gray-200 overflow-y-auto flex-shrink-0">
+            <InspectorPanel />
           </div>
         </main>
 
         {/* Onboarding Steps (Fixed at bottom) */}
         <OnboardingSteps />
-      </div>
+    </div>
 
-      {/* Transaction Modal */}
-      <TransactionModal
-        isOpen={isTransactionModalOpen}
-        onClose={() => setIsTransactionModalOpen(false)}
-        onSuccess={handleTransactionSuccess}
-      />
-    </>
+    {/* Transaction Modal */}
+    <TransactionModal
+      isOpen={isTransactionModalOpen}
+      onClose={() => setIsTransactionModalOpen(false)}
+      onSuccess={handleTransactionSuccess}
+    />
   );
 }
 
