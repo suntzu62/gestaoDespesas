@@ -6,6 +6,7 @@ import {
   ChevronDown,
   ChevronUp,
   Folder,
+  Tag,
   Undo,
   Redo
 } from 'lucide-react';
@@ -13,6 +14,8 @@ import { CategoryGroupWithCategories, financeQueries } from '../lib/supabase';
 import { useBudgetContext } from '../contexts/BudgetContext';
 import { useAuth } from '../contexts/AuthContext';
 import { CategoryGroup } from './CategoryGroup';
+import { CategoryGroupModal } from './CategoryGroupModal';
+import { CategoryModal } from './CategoryModal';
 
 export function BudgetingModule() {
   const { user } = useAuth();
@@ -22,6 +25,8 @@ export function BudgetingModule() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string>('');
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+  const [isCategoryGroupModalOpen, setIsCategoryGroupModalOpen] = useState(false);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
 
   const currentMonth = currentDate.toISOString().slice(0, 7); // YYYY-MM
   const monthName = currentDate.toLocaleDateString('pt-BR', { 
@@ -84,8 +89,11 @@ export function BudgetingModule() {
   };
 
   const handleAddGroup = () => {
-    // TODO: Implement add group modal
-    console.log('Add new group');
+    setIsCategoryGroupModalOpen(true);
+  };
+
+  const handleAddCategory = () => {
+    setIsCategoryModalOpen(true);
   };
 
   const handleUndo = () => {
@@ -159,6 +167,14 @@ export function BudgetingModule() {
           </button>
           
           <button
+            onClick={handleAddCategory}
+            className="flex items-center gap-2 bg-green-600 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
+          >
+            <Tag className="w-4 h-4" />
+            Categoria
+          </button>
+          
+          <button
             onClick={handleUndo}
             className="flex items-center gap-1 text-gray-500 hover:text-gray-700 px-2 py-2 rounded-lg hover:bg-gray-100 transition-colors"
             title="Desfazer"
@@ -212,6 +228,26 @@ export function BudgetingModule() {
           </div>
         )}
       </div>
+      
+      {/* Category Group Modal */}
+      <CategoryGroupModal
+        isOpen={isCategoryGroupModalOpen}
+        onClose={() => setIsCategoryGroupModalOpen(false)}
+        onSuccess={() => {
+          setIsCategoryGroupModalOpen(false);
+          fetchCategoryGroups();
+        }}
+      />
+      
+      {/* Category Modal */}
+      <CategoryModal
+        isOpen={isCategoryModalOpen}
+        onClose={() => setIsCategoryModalOpen(false)}
+        onSuccess={() => {
+          setIsCategoryModalOpen(false);
+          fetchCategoryGroups();
+        }}
+      />
     </div>
   );
 }
