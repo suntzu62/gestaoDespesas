@@ -55,6 +55,12 @@
        new.raw_user_meta_data->>'avatar_url',
        'collaborator'
      );
+
+     -- Update auth.users app_metadata with the role for RLS policies
+     UPDATE auth.users
+     SET raw_app_meta_data = raw_app_meta_data || jsonb_build_object('user_role', 'collaborator'::text)
+     WHERE id = new.id;
+
      RETURN new;
    END;
    $$ language plpgsql security definer;
@@ -95,9 +101,8 @@
      USING (
        (id = auth.uid()) OR 
        (
-         SELECT role FROM profiles 
-         WHERE id = auth.uid()
-       ) IN ('admin', 'owner')
+         (auth.jwt() ->> 'user_role')::user_role IN ('admin', 'owner')
+       )
      );
 
    -- Política para admins alterarem roles
@@ -106,15 +111,13 @@
      TO authenticated
      USING (
        (
-         SELECT role FROM profiles 
-         WHERE id = auth.uid()
-       ) IN ('admin', 'owner')
+         (auth.jwt() ->> 'user_role')::user_role IN ('admin', 'owner')
+       )
      )
      WITH CHECK (
        (
-         SELECT role FROM profiles 
-         WHERE id = auth.uid()
-       ) IN ('admin', 'owner')
+         (auth.jwt() ->> 'user_role')::user_role IN ('admin', 'owner')
+       )
      );
    ```
 
