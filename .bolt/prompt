@@ -3,3 +3,123 @@ For all designs I ask you to make, have them be beautiful, not cookie cutter. Ma
 By default, this template supports JSX syntax with Tailwind CSS classes, React hooks, and Lucide React for icons. Do not install other packages for UI themes, icons, etc unless absolutely necessary or I request them.
 
 Use icons from lucide-react for logos.
+
+For all designs and builds, deliver production-grade UX and code. Use modern, accessible, and high-performance patterns by default.
+
+Stack & libraries
+
+Use JSX + Tailwind classes, React hooks, and Lucide for icons (no UI theme packages unless strictly needed).
+
+Allowed extras when necessary for production quality:
+
+Recharts (charts), @tanstack/react-query (server state), react-hook-form + zod (forms & validation), date-fns (dates).
+
+Backend/data: Supabase (auth/storage/SQL) or Prisma (SQLite/Postgres) as configured in the project.
+
+Workflows/automation: n8n for jobs (imports, categorização, alertas, e-mails, Open Finance).
+
+Performance (Core Web Vitals)
+
+Set a performance budget and hit good thresholds for CWV (LCP/CLS/INP).
+
+Ship instant navigations, prioritize LCP resource in HTML, keep CLS ≤ 0.1, reduce JS, split long tasks, use a CDN for TTFB. Add field measurement for CWV. 
+web.dev
++2
+web.dev
++2
+Google for Developers
+
+Accessibility
+
+Conform to WCAG 2.2 AA: perceivable, operable, understandable, robust. Provide keyboard support, visible focus, proper landmarks/roles, labels, color-contrast, and error messaging. 
+W3C
++2
+W3C
++2
+
+Security (OWASP)
+
+Design against OWASP Top-10: access control, crypto failures, injection, insecure design, misconfig, outdated components, IDOR, etc. Enforce authZ on server, parameterized queries, CSRF where applicable, secure headers (CSP/COOP/CORP), rotate secrets. 
+OWASP
++1
+
+PWA & offline
+
+Make the app installable and resilient: manifest, service worker, offline caching of critical routes, responsive inputs, fast startup. Follow the PWA checklist. 
+web.dev
++2
+web.dev
++2
+
+Internationalization (pt-BR first)
+
+Default locale pt-BR; use the Intl API for moeda/data/pluralização; never hardcode formats. Keep copy in i18n catalogs; support future en-US/es-419. 
+MDN Web Docs
++1
+
+Privacy & LGPD (Brasil)
+
+Colete o mínimo, explique finalidades, obtenha consentimento quando exigido, respeite direitos do titular, trate DPO/relato de incidentes conforme ANPD. Evite enviar dados sensíveis a terceiros sem base legal. 
+Planalto
+Serviços e Informações do Brasil
+Senado Federal
+
+SEO baseline
+
+SSR/SSG para páginas públicas, sitemaps e robots.txt corretos; marque dados com JSON-LD conforme Google guidelines; títulos/meta únicos; canonical; Open Graph. 
+Google for Developers
++3
+Google for Developers
++3
+Google for Developers
++3
+
+Observabilidade & qualidade
+
+Add error boundaries, client/server logging, toast + retry on failures, loading skeletons.
+
+Unit tests for core logic; smoke E2E for auth, forms, billing, and critical flows.
+
+Feature flags para lançamentos seguros.
+
+Product blueprint (SaaS padrão)
+
+1) Auth & contas
+
+E-mail + senha com verificação, magic link opcional, Social login (se configurado).
+
+Reset de senha, políticas de senha, lockout, 2FA opcional.
+
+Perfis, upload de avatar, preferências (tema, idioma, fuso).
+
+RBAC simples: owner, admin, member, viewer. Auditoria básica (quem fez o quê e quando).
+
+2) Billing (multi-SaaS pronto)
+
+Planos Free/Pro/Business; Stripe (ou gateway definido) com trials, cupons, faturas, downgrade/upgrade prorrateado, cancelamento com grace period.
+
+Soft limits por plano (usuários, integrações, automações); bloqueio elegante com CTA para upgrade.
+
+3) Comunicação
+
+E-mail transacional (verificação, boas-vindas, faturamento, alertas).
+
+In-app toasts e banners para eventos importantes.
+
+Preferências de notificação (e-mail/push) por tipo.
+
+4) Integrações/Automação
+
+Webhooks de entrada/saída documentados.
+
+Jobs no n8n (cron, filas, reprocessamento), com página de status e logs.
+
+Conectores seguros (tokens rotativos, escopos mínimos).
+
+5) Site público
+
+Landing, Pricing, Docs/FAQ, Changelog, Blog.
+
+Lighthouse ≥ 90 em Performance/Best-Practices/SEO/Accessibility.
+
+PWA install prompt para usuários recorrentes (opcional).
