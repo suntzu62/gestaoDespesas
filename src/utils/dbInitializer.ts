@@ -7,8 +7,6 @@ import { DEFAULT_CATEGORY_GROUPS, DEFAULT_GOALS } from './defaultCategories';
  */
 export async function initializeUserBudget(userId: string): Promise<boolean> {
   try {
-    console.log('🚀 [dbInitializer] Iniciando verificação de dados do usuário:', userId);
-    
     // Verificar se o usuário já tem grupos de categorias
     const { data: existingGroups, error: groupsError } = await supabase
       .from('category_groups')
@@ -17,22 +15,17 @@ export async function initializeUserBudget(userId: string): Promise<boolean> {
       .limit(1);
 
     if (groupsError) {
-      console.error('❌ [dbInitializer] Erro ao verificar grupos existentes:', groupsError);
       throw groupsError;
     }
 
     // Se já existem grupos, não fazer nada
     if (existingGroups && existingGroups.length > 0) {
-      console.log('✅ [dbInitializer] Usuário já possui dados, pulando inicialização');
       return false;
     }
 
-    console.log('📦 [dbInitializer] Criando dados iniciais para novo usuário...');
 
     // Criar grupos de categorias e categorias
     for (const groupData of DEFAULT_CATEGORY_GROUPS) {
-      console.log(`📁 [dbInitializer] Criando grupo: ${groupData.name}`);
-      
       // Criar o grupo
       const { data: newGroup, error: groupError } = await supabase
         .from('category_groups')
@@ -45,7 +38,6 @@ export async function initializeUserBudget(userId: string): Promise<boolean> {
         .single();
 
       if (groupError) {
-        console.error(`❌ [dbInitializer] Erro ao criar grupo ${groupData.name}:`, groupError);
         throw groupError;
       }
 
@@ -68,16 +60,12 @@ export async function initializeUserBudget(userId: string): Promise<boolean> {
         .insert(categoriesData);
 
       if (categoriesError) {
-        console.error(`❌ [dbInitializer] Erro ao criar categorias para ${groupData.name}:`, categoriesError);
         throw categoriesError;
       }
 
-      console.log(`✅ [dbInitializer] Grupo ${groupData.name} criado com ${groupData.categories.length} categorias`);
     }
 
     // Criar metas padrão (opcional - ligadas às categorias de economia)
-    console.log('🎯 [dbInitializer] Criando metas padrão...');
-    
     // Buscar as categorias de economia criadas para vincular às metas
     const { data: savingCategories, error: savingError } = await supabase
       .from('categories')
@@ -86,7 +74,7 @@ export async function initializeUserBudget(userId: string): Promise<boolean> {
       .eq('type', 'saving');
 
     if (savingError) {
-      console.warn('⚠️ [dbInitializer] Erro ao buscar categorias de economia:', savingError);
+      console.error('Error fetching saving categories:', savingError);
     } else if (savingCategories) {
       for (const goalData of DEFAULT_GOALS) {
         // Encontrar a categoria correspondente
@@ -112,19 +100,16 @@ export async function initializeUserBudget(userId: string): Promise<boolean> {
             });
 
           if (goalError) {
-            console.warn(`⚠️ [dbInitializer] Erro ao criar meta ${goalData.name}:`, goalError);
-          } else {
-            console.log(`✅ [dbInitializer] Meta ${goalData.name} criada`);
+            console.error(`Error creating goal ${goalData.name}:`, goalError);
           }
         }
       }
     }
 
-    console.log('🎉 [dbInitializer] Inicialização completa!');
     return true;
 
   } catch (error) {
-    console.error('💥 [dbInitializer] Erro durante inicialização:', error);
+    console.error('Error during initialization:', error);
     throw error;
   }
 }
@@ -152,8 +137,6 @@ export async function isNewUser(userId: string): Promise<boolean> {
  */
 export async function resetUserBudget(userId: string): Promise<void> {
   try {
-    console.log('🔄 [dbInitializer] Resetando dados do usuário...');
-    
     // Deletar dados existentes (cascata vai limpar categorias e metas)
     await supabase
       .from('category_groups')
@@ -163,9 +146,8 @@ export async function resetUserBudget(userId: string): Promise<void> {
     // Recriar dados padrão
     await initializeUserBudget(userId);
     
-    console.log('✅ [dbInitializer] Reset concluído');
   } catch (error) {
-    console.error('❌ [dbInitializer] Erro durante reset:', error);
+    console.error('Error during reset:', error);
     throw error;
   }
 }

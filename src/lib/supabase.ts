@@ -663,7 +663,7 @@ export const financeQueries = {
       .update({ group_id: groupId })
       .eq('id', categoryId)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
     return data;
@@ -699,7 +699,7 @@ export const financeQueries = {
         sort_order: categoryData.sort_order || 0,
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
     return data;
@@ -712,7 +712,7 @@ export const financeQueries = {
       .update(updates)
       .eq('id', categoryId)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
     return data;
@@ -796,7 +796,7 @@ export const financeQueries = {
         color: goalData.color || '#10B981',
       })
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
     return data;
@@ -809,7 +809,7 @@ export const financeQueries = {
       .update(updates)
       .eq('id', goalId)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
     return data;

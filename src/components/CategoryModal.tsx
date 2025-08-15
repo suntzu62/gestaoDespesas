@@ -154,10 +154,12 @@ export function CategoryModal({
     try {
       if (isEditing && existingCategory) {
         // Update existing category
+        console.log('Updating existing category:', existingCategory.id);
         await financeQueries.updateCategory(existingCategory.id, data);
       } else {
         // Create new category
         const createData = data as CreateCategoryData;
+        console.log('Creating new category with data:', createData);
         await financeQueries.createCategory(user.id, {
           name: createData.name,
           type: createData.type,
@@ -170,12 +172,13 @@ export function CategoryModal({
         });
       }
 
+      console.log('Category operation successful');
       refreshBudget();
       onSuccess?.();
       onClose();
     } catch (err: any) {
       console.error('Error saving category:', err);
-      setError('Erro ao salvar categoria. Tente novamente.');
+      setError(`Erro ao salvar categoria: ${err.message || 'Tente novamente.'}`);
     } finally {
       setLoading(false);
     }

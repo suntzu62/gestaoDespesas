@@ -81,28 +81,32 @@ export function TargetModal({
   const onSubmit = async (data: GoalFormData) => {
     if (!user?.id) return;
 
+    console.log('Creating/updating goal with data:', data);
     setLoading(true);
     setError('');
 
     try {
       if (isEditing && existingGoal) {
         // Update existing goal
+        console.log('Updating existing goal:', existingGoal.id);
         await financeQueries.updateGoal(existingGoal.id, data);
       } else {
         // Create new goal
         const createData = data as CreateGoalData;
+        console.log('Creating new goal for category:', categoryId);
         await financeQueries.createGoal(user.id, {
           ...createData,
           category_id: categoryId,
         });
       }
 
+      console.log('Goal operation successful');
       refreshBudget();
       onSuccess?.();
       onClose();
     } catch (err: any) {
       console.error('Error saving goal:', err);
-      setError('Erro ao salvar meta. Tente novamente.');
+      setError(`Erro ao salvar meta: ${err.message || 'Tente novamente.'}`);
     } finally {
       setLoading(false);
     }
@@ -310,7 +314,13 @@ export function TargetModal({
 
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
-                {error}
+                <div className="flex items-start gap-2">
+                  <div className="text-red-600 mt-0.5">⚠️</div>
+                  <div>
+                    <div className="font-medium">Erro ao salvar meta:</div>
+                    <div className="text-sm mt-1">{error}</div>
+                  </div>
+                </div>
               </div>
             )}
 

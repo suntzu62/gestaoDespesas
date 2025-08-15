@@ -49,20 +49,16 @@ function DashboardContent() {
       if (!user?.id) return;
 
       try {
-        console.log('🚀 [Dashboard] Inicializando dados do usuário...');
         setIsInitializing(true);
         setInitializationError('');
 
         const wasInitialized = await initializeUserBudget(user.id);
         
         if (wasInitialized) {
-          console.log('✅ [Dashboard] Dados iniciais criados, atualizando interface...');
           refreshBudget(); // Refresh the budget data after initialization
-        } else {
-          console.log('ℹ️ [Dashboard] Usuário já possui dados');
         }
       } catch (error) {
-        console.error('❌ [Dashboard] Erro na inicialização:', error);
+        console.error('Dashboard initialization error:', error);
         if (mounted) {
           setInitializationError('Erro ao inicializar dados do orçamento');
         }

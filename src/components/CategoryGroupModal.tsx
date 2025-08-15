@@ -73,19 +73,22 @@ export function CategoryGroupModal({
     try {
       if (isEditing && existingGroup) {
         // Update existing group
+        console.log('Updating existing group:', existingGroup.id);
         await financeQueries.updateCategoryGroup(existingGroup.id, data);
       } else {
         // Create new group
         const createData = data as CreateCategoryGroupData;
+        console.log('Creating new group with data:', createData);
         await financeQueries.createCategoryGroup(user.id, createData.name, createData.sort_order);
       }
 
+      console.log('Group operation successful');
       refreshBudget();
       onSuccess?.();
       onClose();
     } catch (err: any) {
       console.error('Error saving category group:', err);
-      setError('Erro ao salvar grupo de categorias. Tente novamente.');
+      setError(`Erro ao salvar grupo: ${err.message || 'Tente novamente.'}`);
     } finally {
       setLoading(false);
     }
