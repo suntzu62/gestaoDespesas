@@ -37,7 +37,7 @@ export interface AuthUser {
 export type AccountType = 'checking' | 'savings' | 'credit_card' | 'investment' | 'cash';
 export type CategoryType = 'spending' | 'saving' | 'income';
 export type TransactionType = 'income' | 'expense' | 'transfer';
-export type GoalType = 'saving_builder' | 'target_by_date' | 'monthly_funding';
+export type GoalType = 'save_by_date' | 'save_monthly' | 'spend_monthly';
 
 export interface Account {
   id: string;
@@ -68,6 +68,7 @@ export interface Category {
   sort_order: number;
   created_at: string;
   updated_at: string;
+  group_id?: string;
 }
 
 export interface Transaction {
@@ -102,22 +103,35 @@ export interface Budget {
   updated_at: string;
 }
 
+// Updated Goal interface for new MVP approach
 export interface Goal {
   id: string;
   user_id: string;
-  category_id?: string;
-  name: string;
-  description?: string;
-  target_amount: number;
-  current_amount: number;
-  target_date?: string;
+  category_id: string;
   type: GoalType;
-  monthly_contribution: number;
-  is_achieved: boolean;
-  is_active: boolean;
-  color: string;
+  target_amount: number;
+  due_date?: string;
+  cadence?: 'monthly' | 'weekly' | null;
+  note?: string;
   created_at: string;
-  updated_at: string;
+}
+
+// New interface for goal contributions
+export interface GoalContribution {
+  id: string;
+  goal_id: string;
+  user_id: string;
+  amount: number;
+  date: string;
+  created_at: string;
+}
+
+// Interface for goal with calculated progress (from view)
+export interface GoalWithProgress extends Goal {
+  contributed: number;
+  progress_percentage: number;
+  remaining_amount: number;
+  estimated_completion_date?: string;
 }
 
 export interface CategoryGroup {
@@ -446,27 +460,6 @@ export const financeQueries = {
       .eq('user_id', userId)
       .order('sort_order'),
 
-  // Get categories by group
-  getCategoriesByGroup: (userId: string, groupId?: string) => {
-    let query = supabase
-      .from('categories')
-      .select(`
-        *,
-        group:category_groups(*)
-      `)
-      .eq('user_id', userId)
-      .eq('is_hidden', false)
-      .order('sort_order');
-
-    if (groupId) {
-      query = query.eq('group_id', groupId);
-    } else {
-      query = query.is('group_id', null);
-    }
-
-    return query;
-  },
-
   // Get category groups with their categories
   getCategoryGroupsWithCategories: async (userId: string): Promise<CategoryGroupWithCategories[]> => {
     try {
@@ -525,97 +518,6 @@ export const financeQueries = {
       return [];
     }
   },
-
-  // Get budget and spent data for a specific category and month
-  getCategoryBudgetAndSpent: async (userId: string, categoryId: string, month: string) => {
-    try {
-      // Get budget data
-      const { data: budget, error: budgetError } = await supabase
-        .from('budgets')
-        .select('budgeted_amount, rollover_amount')
-        .eq('user_id', userId)
-        .eq('category_id', categoryId)
-        .eq('month', `${month}-01`)
-        .single();
-
-      if (budgetError && budgetError.code !== 'PGRST116') throw budgetError;
-
-      // Get spent amount
-      const startDate = `${month}-01`;
-      const endDate = `${month}-31`;
-      
-      const { data: transactions, error: transactionError } = await supabase
-        .from('transactions')
-        .select('amount')
-        .eq('user_id', userId)
-        .eq('category_id', categoryId)
-        .eq('type', 'expense')
-        .gte('date', startDate)
-        .lte('date', endDate);
-
-      if (transactionError) throw transactionError;
-
-      const budgeted = (budget?.budgeted_amount || 0) + (budget?.rollover_amount || 0);
-      const spent = transactions?.reduce((total, t) => total + Math.abs(t.amount || 0), 0) || 0;
-      const available = budgeted - spent;
-
-      return {
-        budgeted,
-        spent,
-        available,
-        rollover: budget?.rollover_amount || 0
-      };
-    } catch (error) {
-      console.error('Error getting category budget and spent:', error);
-      return { budgeted: 0, spent: 0, available: 0, rollover: 0 };
-    }
-  },
-
-  // Get historical data for a category (for Inspector mini-chart)
-  getCategoryHistoricalData: async (userId: string, categoryId: string, monthsBack: number = 6) => {
-    try {
-      const months = [];
-      const currentDate = new Date();
-      
-      // Generate last N months
-      for (let i = monthsBack - 1; i >= 0; i--) {
-        const date = new Date(currentDate);
-        date.setMonth(date.getMonth() - i);
-        months.push({
-          month: date.toISOString().slice(0, 7),
-          name: date.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })
-        });
-      }
-
-      const historicalData = [];
-
-      for (const { month, name } of months) {
-        const data = await financeQueries.getCategoryBudgetAndSpent(userId, categoryId, month);
-        
-        historicalData.push({
-          month: name,
-          planejado: data.budgeted,
-          gasto: data.spent,
-          disponivel: data.available
-        });
-      }
-
-      return historicalData;
-    } catch (error) {
-      console.error('Error getting category historical data:', error);
-      return [];
-    }
-  },
-
-  // Get goals for a specific category
-  getGoalsForCategory: (userId: string, categoryId: string) =>
-    supabase
-      .from('goals')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('category_id', categoryId)
-      .eq('is_active', true)
-      .order('created_at', { ascending: false }),
 
   // Create a new category group
   createCategoryGroup: async (userId: string, name: string, sortOrder?: number) => {
@@ -740,60 +642,76 @@ export const financeQueries = {
     return data ? data.length > 0 : false;
   },
 
-  // ============ GOALS/TARGETS FUNCTIONS ============
+  // ============ GOALS/TARGETS FUNCTIONS - NEW MVP APPROACH ============
 
-  // Get active goal for a specific category
-  getGoalForCategory: async (userId: string, categoryId: string): Promise<Goal | null> => {
-    const { data, error } = await supabase
-      .from('goals')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('category_id', categoryId)
-      .eq('is_active', true)
-      .maybeSingle();
+  // Get goals with progress using the view
+  getGoalsWithProgress: async (userId: string, categoryId?: string): Promise<GoalWithProgress[]> => {
+    try {
+      let query = supabase
+        .from('v_goal_progress')
+        .select('*')
+        .eq('user_id', userId);
 
-    if (error && error.code !== 'PGRST116') throw error;
-    return data || null;
+      if (categoryId) {
+        query = query.eq('category_id', categoryId);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
+      if (error) throw error;
+
+      // Calculate derived fields for each goal
+      return (data || []).map(item => {
+        const contributed = item.contributed || 0;
+        const progress = item.target_amount > 0 ? (contributed / item.target_amount) * 100 : 0;
+        const remaining = Math.max(0, item.target_amount - contributed);
+        
+        // Calculate estimated completion date for save_by_date and save_monthly
+        let estimatedCompletion = undefined;
+        if (item.type === 'save_by_date' && item.due_date && remaining > 0) {
+          const dueDate = new Date(item.due_date);
+          const today = new Date();
+          const daysRemaining = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+          const monthsRemaining = Math.max(1, Math.ceil(daysRemaining / 30));
+          estimatedCompletion = `R$ ${(remaining / monthsRemaining).toFixed(2)}/mês`;
+        } else if (item.type === 'save_monthly' && item.cadence === 'monthly' && remaining > 0) {
+          // For monthly savings, just show target per month
+          estimatedCompletion = `R$ ${item.target_amount.toFixed(2)}/mês`;
+        }
+
+        return {
+          ...item,
+          id: item.goal_id,
+          contributed,
+          progress_percentage: Math.min(progress, 100),
+          remaining_amount: remaining,
+          estimated_completion_date: estimatedCompletion,
+        };
+      });
+    } catch (error) {
+      console.error('Error getting goals with progress:', error);
+      return [];
+    }
   },
-
-  // Get all active goals for a user
-  getUserGoals: (userId: string) =>
-    supabase
-      .from('goals')
-      .select(`
-        *,
-        category:categories(name, color, icon)
-      `)
-      .eq('user_id', userId)
-      .eq('is_active', true)
-      .order('created_at', { ascending: false }),
 
   // Create a new goal
   createGoal: async (userId: string, goalData: {
     category_id: string;
-    name: string;
-    description?: string;
-    target_amount: number;
-    target_date?: string;
     type: GoalType;
-    monthly_contribution?: number;
-    color?: string;
+    target_amount: number;
+    due_date?: string;
+    cadence?: 'monthly' | 'weekly' | null;
+    note?: string;
   }) => {
     const { data, error } = await supabase
       .from('goals')
       .insert({
         user_id: userId,
         category_id: goalData.category_id,
-        name: goalData.name,
-        description: goalData.description || null,
-        target_amount: goalData.target_amount,
-        current_amount: 0,
-        target_date: goalData.target_date || null,
         type: goalData.type,
-        monthly_contribution: goalData.monthly_contribution || 0,
-        is_achieved: false,
-        is_active: true,
-        color: goalData.color || '#10B981',
+        target_amount: goalData.target_amount,
+        due_date: goalData.due_date || null,
+        cadence: goalData.cadence || null,
+        note: goalData.note || null,
       })
       .select()
       .maybeSingle();
@@ -806,7 +724,13 @@ export const financeQueries = {
   updateGoal: async (goalId: string, updates: Partial<Goal>) => {
     const { data, error } = await supabase
       .from('goals')
-      .update(updates)
+      .update({
+        type: updates.type,
+        target_amount: updates.target_amount,
+        due_date: updates.due_date || null,
+        cadence: updates.cadence || null,
+        note: updates.note || null,
+      })
       .eq('id', goalId)
       .select()
       .maybeSingle();
@@ -819,83 +743,48 @@ export const financeQueries = {
   deleteGoal: async (goalId: string) => {
     const { error } = await supabase
       .from('goals')
-      .update({ is_active: false })
+      .delete()
       .eq('id', goalId);
 
     if (error) throw error;
   },
 
-  // Calculate progress for a goal based on category budget/spending
-  calculateGoalProgress: async (userId: string, goalId: string): Promise<{
-    current_amount: number;
-    progress_percentage: number;
-    remaining_amount: number;
-    estimated_completion_date?: string;
-  }> => {
-    try {
-      // Get goal details
-      const { data: goal, error: goalError } = await supabase
-        .from('goals')
-        .select('*')
-        .eq('id', goalId)
-        .single();
+  // Create a goal contribution
+  createGoalContribution: async (userId: string, goalId: string, amount: number, date: string, note?: string) => {
+    const { data, error } = await supabase
+      .from('goal_contributions')
+      .insert({
+        user_id: userId,
+        goal_id: goalId,
+        amount: amount,
+        date: date,
+      })
+      .select()
+      .maybeSingle();
 
-      if (goalError) throw goalError;
-
-      // For savings goals, calculate based on category budget allocations
-      // This is a simplified calculation - in a real app you'd track transfers to savings
-      const current_amount = goal.current_amount || 0;
-      const progress = goal.target_amount > 0 ? (current_amount / goal.target_amount) * 100 : 0;
-      const remaining = Math.max(0, goal.target_amount - current_amount);
-
-      // Calculate estimated completion if monthly contribution is set
-      let estimatedCompletion = undefined;
-      if (goal.monthly_contribution > 0 && remaining > 0) {
-        const monthsRemaining = Math.ceil(remaining / goal.monthly_contribution);
-        const completionDate = new Date();
-        completionDate.setMonth(completionDate.getMonth() + monthsRemaining);
-        estimatedCompletion = completionDate.toISOString().split('T')[0];
-      }
-
-      return {
-        current_amount,
-        progress_percentage: Math.min(progress, 100),
-        remaining_amount: remaining,
-        estimated_completion_date: estimatedCompletion,
-      };
-    } catch (error) {
-      console.error('Error calculating goal progress:', error);
-      return {
-        current_amount: 0,
-        progress_percentage: 0,
-        remaining_amount: 0,
-      };
-    }
+    if (error) throw error;
+    return data;
   },
 
-  // Get goals with progress for a category
-  getCategoryGoalsWithProgress: async (userId: string, categoryId: string) => {
-    try {
-      const { data: goals, error } = await supabase
-        .from('goals')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('category_id', categoryId)
-        .eq('is_active', true);
+  // Get contributions for a goal
+  getGoalContributions: async (goalId: string) => {
+    const { data, error } = await supabase
+      .from('goal_contributions')
+      .select('*')
+      .eq('goal_id', goalId)
+      .order('date', { ascending: false });
 
-      if (error) throw error;
+    if (error) throw error;
+    return data || [];
+  },
 
-      const goalsWithProgress = await Promise.all(
-        (goals || []).map(async (goal) => {
-          const progress = await financeQueries.calculateGoalProgress(userId, goal.id);
-          return { ...goal, ...progress };
-        })
-      );
+  // Delete a goal contribution
+  deleteGoalContribution: async (contributionId: string) => {
+    const { error } = await supabase
+      .from('goal_contributions')
+      .delete()
+      .eq('id', contributionId);
 
-      return goalsWithProgress;
-    } catch (error) {
-      console.error('Error getting category goals with progress:', error);
-      return [];
-    }
-  }
+    if (error) throw error;
+  },
 };

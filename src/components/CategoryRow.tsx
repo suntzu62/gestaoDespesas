@@ -4,7 +4,7 @@ import {
   Car, Coffee, Phone, Heart, Music, Gamepad2, Package, DollarSign, Building, 
   Bus, Pill, Utensils, Plane, Shirt, Smartphone, Play 
 } from 'lucide-react';
-import { Category, Goal, financeQueries } from '../lib/supabase';
+import { Category, GoalWithProgress, financeQueries } from '../lib/supabase';
 import { useBudgetContext } from '../contexts/BudgetContext';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -64,7 +64,7 @@ const getIconComponent = (iconName?: string) => {
 export function CategoryRow({ category }: CategoryRowProps) {
   const { user } = useAuth();
   const { selectedCategory, setSelectedCategory } = useBudgetContext();
-  const [categoryGoal, setCategoryGoal] = useState<Goal | null>(null);
+  const [categoryGoal, setCategoryGoal] = useState<GoalWithProgress | null>(null);
   const [goalLoading, setGoalLoading] = useState(false);
 
   const isSelected = selectedCategory?.id === category.id;
@@ -81,8 +81,8 @@ export function CategoryRow({ category }: CategoryRowProps) {
     
     setGoalLoading(true);
     try {
-      const goal = await financeQueries.getGoalForCategory(user.id, category.id);
-      setCategoryGoal(goal);
+      const goals = await financeQueries.getGoalsWithProgress(user.id, category.id);
+      setCategoryGoal(goals.length > 0 ? goals[0] : null);
     } catch (error) {
       console.error('Error fetching category goal:', error);
       setCategoryGoal(null);
@@ -111,55 +111,71 @@ export function CategoryRow({ category }: CategoryRowProps) {
       return <span className="text-gray-500 text-sm">Sem meta</span>;
     }
 
-    const progress = categoryGoal.target_amount > 0 ? 
-      (categoryGoal.current_amount / categoryGoal.target_amount) * 100 : 0;
-    
-    if (progress >= 100) {
+    if (categoryGoal.progress_percentage >= 100) {
       return <span className="text-green-600 text-sm font-medium">Meta atingida! 🎉</span>;
     }
 
-    const remaining = categoryGoal.target_amount - categoryGoal.current_amount;
     return (
       <div className="text-right">
         <div className="text-sm text-gray-600">
-          {formatCurrency(categoryGoal.current_amount)} / {formatCurrency(categoryGoal.target_amount)}
+          {formatCurrency(categoryGoal.contributed)} / {formatCurrency(categoryGoal.target_amount)}
         </div>
         <div className="text-xs text-gray-500">
-          Faltam {formatCurrency(remaining)}
+          {categoryGoal.progress_percentage.toFixed(1)}% atingido
         </div>
       </div>
     );
   };
 
   return (
-    <div
-      onClick={handleRowClick}
-      className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all duration-200 group ${
-        isSelected
-          ? 'bg-blue-50 border border-blue-200'
-          : 'hover:bg-gray-50 border border-transparent'
-      }`}
-    >
-      <div className="flex items-center gap-3 flex-1">
-        {/* Category Icon */}
-        <div className="flex-shrink-0">
-          <IconComponent 
-            className={`w-5 h-5 ${
-              isSelected ? 'text-blue-600' : 'text-gray-600'
-            }`}
-          />
+    <div className="space-y-1">
+      <div
+        onClick={handleRowClick}
+        className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all duration-200 group ${
+          isSelected
+            ? 'bg-blue-50 border border-blue-200'
+            : 'hover:bg-gray-50 border border-transparent'
+        }`}
+      >
+        <div className="flex items-center gap-3 flex-1">
+          {/* Category Icon */}
+          <div className="flex-shrink-0">
+            <IconComponent 
+              className={`w-5 h-5 ${
+                isSelected ? 'text-blue-600' : 'text-gray-600'
+              }`}
+            />
+          </div>
+          
+          {/* Category Name */}
+          <span className={`font-medium ${
+            isSelected ? 'text-blue-900' : 'text-gray-900'
+          }`}>
+            {category.name}
+          </span>
         </div>
-        
-        {/* Category Name */}
-        <span className={`font-medium ${
-          isSelected ? 'text-blue-900' : 'text-gray-900'
-        }`}>
-          {category.name}
-        </span>
-      </div>
 
-      {/* Goal Status */}
-      {getGoalStatus()}
+        {/* Goal Status */}
+        {getGoalStatus()}
+      </div>
+      
+      {/* Goal Progress Bar (when goal exists) */}
+      {categoryGoal && categoryGoal.progress_percentage > 0 && (
+        <div className="ml-8 mr-3">
+          <div className="w-full bg-gray-200 rounded-full h-1">
+            <div
+              className={`h-1 rounded-full transition-all duration-300 ${
+                categoryGoal.progress_percentage >= 100 ? 'bg-green-500' :
+                categoryGoal.progress_percentage >= 80 ? 'bg-blue-500' :
+                categoryGoal.progress_percentage >= 50 ? 'bg-yellow-500' : 'bg-gray-400'
+              }`}
+              style={{
+                width: `${Math.min(categoryGoal.progress_percentage, 100)}%`,
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

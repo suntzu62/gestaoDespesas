@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Edit3, Trash2, Target, ChevronDown, Home, Zap, Tv, Shield, GraduationCap, Dumbbell, ShoppingCart, Car, Coffee, Phone, Heart, Music, Gamepad2, Package, DollarSign, Plus, Calendar, Loader2 } from 'lucide-react';
+import { Edit3, Trash2, Target, Plus, Home, Zap, Tv, Shield, GraduationCap, Dumbbell, ShoppingCart, Car, Coffee, Phone, Heart, Music, Gamepad2, Package, DollarSign, Calendar, Loader2, TrendingUp, CheckCircle } from 'lucide-react';
 import { useBudgetContext } from '../contexts/BudgetContext';
 import { useAuth } from '../contexts/AuthContext';
-import { Goal, financeQueries } from '../lib/supabase';
+import { GoalWithProgress, financeQueries } from '../lib/supabase';
 import { TargetModal } from './TargetModal';
 import { CategoryModal } from './CategoryModal';
+import { ContributionModal } from './ContributionModal';
 
 const getIconComponent = (iconName?: string) => {
   const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -50,10 +51,11 @@ const getIconComponent = (iconName?: string) => {
 export function InspectorPanel() {
   const { user } = useAuth();
   const { selectedCategory, setSelectedCategory, refreshBudget } = useBudgetContext();
-  const [categoryGoal, setCategoryGoal] = useState<Goal | null>(null);
+  const [categoryGoal, setCategoryGoal] = useState<GoalWithProgress | null>(null);
   const [goalLoading, setGoalLoading] = useState(false);
   const [isTargetModalOpen, setIsTargetModalOpen] = useState(false);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [isContributionModalOpen, setIsContributionModalOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
@@ -69,8 +71,8 @@ export function InspectorPanel() {
     
     setGoalLoading(true);
     try {
-      const goal = await financeQueries.getGoalForCategory(user.id, selectedCategory.id);
-      setCategoryGoal(goal);
+      const goals = await financeQueries.getGoalsWithProgress(user.id, selectedCategory.id);
+      setCategoryGoal(goals.length > 0 ? goals[0] : null);
     } catch (error) {
       console.error('Error fetching category goal:', error);
       setCategoryGoal(null);
@@ -80,9 +82,20 @@ export function InspectorPanel() {
   };
 
   const handleTargetModalSuccess = () => {
-    fetchCategoryGoal(); // Refresh goal data
-    refreshBudget(); // Refresh budget data
+    fetchCategoryGoal();
+    refreshBudget();
     setIsTargetModalOpen(false);
+  };
+
+  const handleContributionSuccess = () => {
+    fetchCategoryGoal();
+    refreshBudget();
+    setIsContributionModalOpen(false);
+  };
+
+  const handleCategoryModalSuccess = () => {
+    setIsCategoryModalOpen(false);
+    refreshBudget();
   };
 
   const formatCurrency = (amount: number) => {
@@ -94,14 +107,38 @@ export function InspectorPanel() {
 
   const getGoalTypeLabel = (type: string) => {
     switch (type) {
-      case 'saving_builder':
-        return 'Construtor de Poupança';
-      case 'target_by_date':
-        return 'Meta com Prazo';
-      case 'monthly_funding':
-        return 'Contribuição Mensal';
+      case 'save_by_date':
+        return 'Economizar até uma data';
+      case 'save_monthly':
+        return 'Economizar mensalmente';
+      case 'spend_monthly':
+        return 'Limite de gasto mensal';
       default:
         return 'Meta';
+    }
+  };
+
+  const handleEdit = () => {
+    setIsCategoryModalOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!selectedCategory || !user?.id) return;
+
+    if (!confirm(`Tem certeza de que deseja excluir a categoria "${selectedCategory.name}"? Todas as transações associadas ficarão sem categoria.`)) {
+      return;
+    }
+
+    setDeleteLoading(true);
+
+    try {
+      await financeQueries.deleteCategory(selectedCategory.id);
+      refreshBudget();
+      setSelectedCategory(null);
+    } catch (err: any) {
+      console.error('Error deleting category:', err);
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -124,36 +161,6 @@ export function InspectorPanel() {
   }
 
   const IconComponent = getIconComponent(selectedCategory.icon);
-  
-  const handleEdit = () => {
-    setIsCategoryModalOpen(true);
-  };
-
-  const handleDelete = async () => {
-    if (!selectedCategory || !user?.id) return;
-
-    if (!confirm(`Tem certeza de que deseja excluir a categoria "${selectedCategory.name}"? Todas as transações associadas ficarão sem categoria.`)) {
-      return;
-    }
-
-    setDeleteLoading(true);
-
-    try {
-      await financeQueries.deleteCategory(selectedCategory.id);
-      refreshBudget();
-      setSelectedCategory(null); // Clear selection after delete
-    } catch (err: any) {
-      console.error('Error deleting category:', err);
-      // TODO: Show error toast/notification
-    } finally {
-      setDeleteLoading(false);
-    }
-  };
-
-  const handleCategoryModalSuccess = () => {
-    setIsCategoryModalOpen(false);
-    refreshBudget(); // Refresh budget data
-  };
 
   return (
     <>
@@ -196,9 +203,6 @@ export function InspectorPanel() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h4 className="font-medium text-gray-900">Meta</h4>
-            <button className="flex items-center gap-1 text-gray-500 hover:text-gray-700">
-              <ChevronDown className="w-4 h-4" />
-            </button>
           </div>
 
           {goalLoading ? (
@@ -207,11 +211,13 @@ export function InspectorPanel() {
               <p className="text-sm text-gray-600">Carregando meta...</p>
             </div>
           ) : categoryGoal ? (
-            // Display existing goal
+            // Display existing goal with progress
             <div className="bg-green-50 rounded-lg p-4 border border-green-200">
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <h5 className="font-medium text-green-900 mb-1">{categoryGoal.name}</h5>
+                  <h5 className="font-medium text-green-900 mb-1">
+                    Meta para {selectedCategory.name}
+                  </h5>
                   <p className="text-sm text-green-700">{getGoalTypeLabel(categoryGoal.type)}</p>
                 </div>
                 <button
@@ -222,7 +228,7 @@ export function InspectorPanel() {
                 </button>
               </div>
               
-              <div className="space-y-2 text-sm">
+              <div className="space-y-2 text-sm mb-4">
                 <div className="flex justify-between">
                   <span className="text-green-700">Meta:</span>
                   <span className="font-medium text-green-900">
@@ -230,52 +236,109 @@ export function InspectorPanel() {
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-green-700">Atual:</span>
+                  <span className="text-green-700">Contribuído:</span>
                   <span className="font-medium text-green-900">
-                    {formatCurrency(categoryGoal.current_amount)}
+                    {formatCurrency(categoryGoal.contributed)}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-green-700">Restante:</span>
                   <span className="font-medium text-green-900">
-                    {formatCurrency(Math.max(0, categoryGoal.target_amount - categoryGoal.current_amount))}
+                    {formatCurrency(categoryGoal.remaining_amount)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-green-700">Progresso:</span>
+                  <span className="font-medium text-green-900">
+                    {categoryGoal.progress_percentage.toFixed(1)}%
                   </span>
                 </div>
               </div>
               
               {/* Progress Bar */}
-              <div className="mt-3">
-                <div className="w-full bg-green-200 rounded-full h-2">
+              <div className="mb-4">
+                <div className="w-full bg-green-200 rounded-full h-3">
                   <div
-                    className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                    className="bg-green-600 h-3 rounded-full transition-all duration-300 flex items-center justify-end pr-2"
                     style={{
-                      width: `${Math.min((categoryGoal.current_amount / categoryGoal.target_amount) * 100, 100)}%`,
+                      width: `${Math.min(categoryGoal.progress_percentage, 100)}%`,
                     }}
-                  />
-                </div>
-                <div className="flex justify-between text-xs text-green-600 mt-1">
-                  <span>0%</span>
-                  <span>
-                    {Math.round((categoryGoal.current_amount / categoryGoal.target_amount) * 100)}%
-                  </span>
-                  <span>100%</span>
+                  >
+                    {categoryGoal.progress_percentage >= 20 && (
+                      <span className="text-white text-xs font-medium">
+                        {categoryGoal.progress_percentage >= 100 ? '🎉' : `${categoryGoal.progress_percentage.toFixed(0)}%`}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              {categoryGoal.description && (
-                <p className="text-sm text-green-700 mt-3 italic">
-                  {categoryGoal.description}
-                </p>
-              )}
-              
-              {categoryGoal.target_date && (
-                <div className="flex items-center gap-2 text-sm text-green-700 mt-2">
+              {/* Estimation */}
+              {categoryGoal.estimated_completion_date && (
+                <div className="flex items-center gap-2 text-sm text-green-700 mb-4">
                   <Calendar className="w-4 h-4" />
-                  <span>
-                    Prazo: {new Date(categoryGoal.target_date).toLocaleDateString('pt-BR')}
-                  </span>
+                  <span>{categoryGoal.estimated_completion_date}</span>
                 </div>
               )}
+
+              {/* Achievement Status */}
+              {categoryGoal.progress_percentage >= 100 && (
+                <div className="bg-green-600 text-white rounded-lg p-3 mb-4">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5" />
+                    <span className="font-medium">Meta atingida! Parabéns! 🎉</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Due Date Warning */}
+              {categoryGoal.type === 'save_by_date' && categoryGoal.due_date && (
+                (() => {
+                  const dueDate = new Date(categoryGoal.due_date);
+                  const today = new Date();
+                  const daysRemaining = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                  
+                  if (daysRemaining <= 30 && categoryGoal.progress_percentage < 100) {
+                    return (
+                      <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4">
+                        <div className="flex items-center gap-2 text-orange-700">
+                          <Calendar className="w-4 h-4" />
+                          <span className="text-sm font-medium">
+                            {daysRemaining > 0 
+                              ? `Faltam apenas ${daysRemaining} dias!` 
+                              : 'Meta vencida!'
+                            }
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()
+              )}
+
+              {categoryGoal.note && (
+                <p className="text-sm text-green-700 mb-4 italic bg-green-100 rounded p-2">
+                  {categoryGoal.note}
+                </p>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setIsContributionModalOpen(true)}
+                  className="flex-1 bg-green-600 text-white py-2 px-3 rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Contribuir
+                </button>
+                <button
+                  onClick={() => setIsTargetModalOpen(true)}
+                  className="flex-1 border border-green-600 text-green-600 py-2 px-3 rounded-lg font-medium hover:bg-green-50 transition-colors"
+                >
+                  Editar
+                </button>
+              </div>
             </div>
           ) : (
             // No goal - show creation prompt
@@ -291,7 +354,7 @@ export function InspectorPanel() {
 
               <button
                 onClick={() => setIsTargetModalOpen(true)}
-                className="w-full bg-green-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                className="w-full bg-green-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
               >
                 <Plus className="w-4 h-4" />
                 Criar Meta
@@ -303,7 +366,7 @@ export function InspectorPanel() {
         {/* Additional sections can be added here later */}
         <div className="mt-6 pt-6 border-t border-gray-200">
           <div className="text-center text-gray-500 text-sm">
-            Mais recursos em breve...
+            Histórico de contribuições em breve...
           </div>
         </div>
       </div>
@@ -324,6 +387,15 @@ export function InspectorPanel() {
         onClose={() => setIsCategoryModalOpen(false)}
         existingCategory={selectedCategory}
         onSuccess={handleCategoryModalSuccess}
+      />
+
+      {/* Contribution Modal */}
+      <ContributionModal
+        isOpen={isContributionModalOpen}
+        onClose={() => setIsContributionModalOpen(false)}
+        goalId={categoryGoal?.id || ''}
+        goalName={`Meta para ${selectedCategory.name}`}
+        onSuccess={handleContributionSuccess}
       />
     </>
   );

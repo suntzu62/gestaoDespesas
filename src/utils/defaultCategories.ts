@@ -24,7 +24,7 @@ export interface DefaultGoal {
   type: GoalType;
   color: string;
   category_name?: string; // Referência para vincular a uma categoria específica
-}
+export type GoalType = 'save_by_date' | 'save_monthly' | 'spend_monthly';
 
 export const DEFAULT_CATEGORY_GROUPS: DefaultCategoryGroup[] = [
   {
@@ -247,7 +247,7 @@ export const DEFAULT_GOALS: DefaultGoal[] = [
     name: "Fundo de Emergência",
     description: "Reserve de 3 a 6 meses de gastos para emergências",
     target_amount: 10000,
-    type: "saving_builder",
+    type: "save_by_date",
     color: "#10B981",
     category_name: "Fundo de Emergência",
   },
@@ -255,7 +255,7 @@ export const DEFAULT_GOALS: DefaultGoal[] = [
     name: "Viagem dos Sonhos",
     description: "Economize para aquela viagem especial",
     target_amount: 8000,
-    type: "target_by_date",
+    type: "save_by_date",
     color: "#06B6D4",
     category_name: "Viagem dos Sonhos",
   },
@@ -263,7 +263,7 @@ export const DEFAULT_GOALS: DefaultGoal[] = [
     name: "Troca de Carro",
     description: "Junte dinheiro para a entrada do carro novo",
     target_amount: 15000,
-    type: "monthly_funding",
+    type: "save_monthly",
     color: "#F59E0B",
     category_name: "Troca de Carro",
   },

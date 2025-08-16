@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { X, Target, Calendar, DollarSign, Repeat, Trash2, Loader2 } from 'lucide-react';
+import { X, Target, Calendar, DollarSign, Repeat, Trash2, Loader2, FileText } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { CreateGoalData, UpdateGoalData, createGoalSchema, updateGoalSchema } from '../lib/validations';
-import { Goal, financeQueries } from '../lib/supabase';
+import { CreateGoalData, UpdateGoalData, createGoalSchema, updateGoalSchema, GoalType } from '../lib/validations';
+import { GoalWithProgress, financeQueries } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useBudgetContext } from '../contexts/BudgetContext';
 
@@ -12,7 +12,7 @@ interface TargetModalProps {
   onClose: () => void;
   categoryId: string;
   categoryName: string;
-  existingGoal?: Goal | null;
+  existingGoal?: GoalWithProgress | null;
   onSuccess?: () => void;
 }
 
@@ -43,40 +43,39 @@ export function TargetModal({
   } = useForm<GoalFormData>({
     resolver: zodResolver(isEditing ? updateGoalSchema : createGoalSchema),
     defaultValues: {
-      type: 'saving_builder',
+      type: 'save_by_date',
       target_amount: 0,
-      monthly_contribution: 0,
     },
   });
 
   const watchType = watch('type');
   const watchTargetAmount = watch('target_amount');
+  const watchDueDate = watch('due_date');
 
   useEffect(() => {
     if (isOpen) {
       if (existingGoal) {
         // Populate form with existing goal data
         reset({
-          name: existingGoal.name,
-          description: existingGoal.description || '',
-          target_amount: existingGoal.target_amount,
-          target_date: existingGoal.target_date || '',
           type: existingGoal.type,
-          monthly_contribution: existingGoal.monthly_contribution || 0,
-          color: existingGoal.color,
+          target_amount: existingGoal.target_amount,
+          due_date: existingGoal.due_date || '',
+          cadence: existingGoal.cadence || undefined,
+          note: existingGoal.note || '',
         });
       } else {
-        // Set default name for new goal
+        // Set defaults for new goal
         reset({
-          name: `Meta para ${categoryName}`,
-          type: 'saving_builder',
+          type: 'save_by_date',
           target_amount: 0,
-          monthly_contribution: 0,
+          due_date: '',
+          cadence: undefined,
+          note: '',
         });
       }
       setError('');
     }
-  }, [isOpen, existingGoal, categoryName, reset]);
+  }, [isOpen, existingGoal, reset]);
 
   const onSubmit = async (data: GoalFormData) => {
     if (!user?.id) return;
@@ -115,7 +114,7 @@ export function TargetModal({
   const handleDelete = async () => {
     if (!existingGoal || !user?.id) return;
 
-    if (!confirm('Tem certeza de que deseja excluir esta meta?')) {
+    if (!confirm('Tem certeza de que deseja excluir esta meta? Todas as contribuições serão perdidas.')) {
       return;
     }
 
@@ -135,14 +134,14 @@ export function TargetModal({
     }
   };
 
-  const getGoalTypeLabel = (type: string) => {
+  const getGoalTypeLabel = (type: GoalType) => {
     switch (type) {
-      case 'saving_builder':
-        return 'Economizar um valor específico';
-      case 'target_by_date':
+      case 'save_by_date':
         return 'Economizar até uma data';
-      case 'monthly_funding':
-        return 'Contribuição mensal';
+      case 'save_monthly':
+        return 'Economizar mensalmente';
+      case 'spend_monthly':
+        return 'Limite de gasto mensal';
       default:
         return 'Meta';
     }
@@ -153,6 +152,29 @@ export function TargetModal({
       style: 'currency',
       currency: 'BRL',
     }).format(value);
+  };
+
+  const getHelpText = () => {
+    if (!watchTargetAmount || watchTargetAmount <= 0) return null;
+
+    switch (watchType) {
+      case 'save_by_date':
+        if (watchDueDate) {
+          const dueDate = new Date(watchDueDate);
+          const today = new Date();
+          const daysRemaining = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+          const monthsRemaining = Math.max(1, Math.ceil(daysRemaining / 30));
+          const monthlyAmount = watchTargetAmount / monthsRemaining;
+          return `💡 Precisa reservar ${formatCurrency(monthlyAmount)}/mês até ${dueDate.toLocaleDateString('pt-BR')}`;
+        }
+        return null;
+      case 'save_monthly':
+        return `💡 Reservar ${formatCurrency(watchTargetAmount)} todo mês`;
+      case 'spend_monthly':
+        return `💡 Limite de gasto de ${formatCurrency(watchTargetAmount)}/mês`;
+      default:
+        return null;
+    }
   };
 
   if (!isOpen) return null;
@@ -182,35 +204,28 @@ export function TargetModal({
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            {/* Goal Name */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Nome da Meta
-              </label>
-              <input
-                {...register('name')}
-                type="text"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                placeholder="Ex: Fundo de Emergência"
-              />
-              {errors.name && (
-                <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
-              )}
-            </div>
-
             {/* Goal Type */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Tipo de Meta
               </label>
-              <select
-                {...register('type')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              >
-                <option value="saving_builder">Economizar um valor específico</option>
-                <option value="target_by_date">Economizar até uma data</option>
-                <option value="monthly_funding">Contribuição mensal</option>
-              </select>
+              <div className="space-y-2">
+                {[
+                  { value: 'save_by_date', label: 'Economizar até uma data' },
+                  { value: 'save_monthly', label: 'Economizar mensalmente' },
+                  { value: 'spend_monthly', label: 'Limite de gasto mensal' }
+                ].map((option) => (
+                  <label key={option.value} className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      {...register('type')}
+                      type="radio"
+                      value={option.value}
+                      className="w-4 h-4 text-green-600 border-gray-300 focus:ring-green-500"
+                    />
+                    <span className="text-sm text-gray-700">{option.label}</span>
+                  </label>
+                ))}
+              </div>
               {errors.type && (
                 <p className="mt-1 text-sm text-red-600">{errors.type.message}</p>
               )}
@@ -219,7 +234,7 @@ export function TargetModal({
             {/* Target Amount */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Valor Alvo (R$)
+                {watchType === 'spend_monthly' ? 'Limite Mensal (R$)' : 'Valor Alvo (R$)'}
               </label>
               <div className="relative">
                 <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -237,8 +252,8 @@ export function TargetModal({
               )}
             </div>
 
-            {/* Target Date (for target_by_date type) */}
-            {watchType === 'target_by_date' && (
+            {/* Due Date (for save_by_date type) */}
+            {watchType === 'save_by_date' && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Data Alvo
@@ -246,55 +261,65 @@ export function TargetModal({
                 <div className="relative">
                   <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                   <input
-                    {...register('target_date')}
+                    {...register('due_date')}
                     type="date"
                     className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   />
                 </div>
-                {errors.target_date && (
-                  <p className="mt-1 text-sm text-red-600">{errors.target_date.message}</p>
+                {errors.due_date && (
+                  <p className="mt-1 text-sm text-red-600">{errors.due_date.message}</p>
                 )}
               </div>
             )}
 
-            {/* Monthly Contribution (for monthly_funding type) */}
-            {watchType === 'monthly_funding' && (
+            {/* Cadence (for save_monthly and spend_monthly types) */}
+            {(watchType === 'save_monthly' || watchType === 'spend_monthly') && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Contribuição Mensal (R$)
+                  Frequência
                 </label>
                 <div className="relative">
                   <Repeat className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <input
-                    {...register('monthly_contribution', { valueAsNumber: true })}
-                    type="number"
-                    step="0.01"
-                    min="0"
+                  <select
+                    {...register('cadence')}
                     className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    placeholder="0,00"
-                  />
+                  >
+                    <option value="">Selecione a frequência</option>
+                    <option value="monthly">Mensal</option>
+                    <option value="weekly">Semanal</option>
+                  </select>
                 </div>
-                {errors.monthly_contribution && (
-                  <p className="mt-1 text-sm text-red-600">{errors.monthly_contribution.message}</p>
+                {errors.cadence && (
+                  <p className="mt-1 text-sm text-red-600">{errors.cadence.message}</p>
                 )}
               </div>
             )}
 
-            {/* Description */}
+            {/* Note */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Descrição (opcional)
+                Nota (opcional)
               </label>
-              <textarea
-                {...register('description')}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                placeholder="Descreva o objetivo desta meta..."
-              />
-              {errors.description && (
-                <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
+              <div className="relative">
+                <FileText className="absolute left-3 top-3 text-gray-400 w-4 h-4" />
+                <textarea
+                  {...register('note')}
+                  rows={3}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  placeholder="Descreva o objetivo desta meta..."
+                />
+              </div>
+              {errors.note && (
+                <p className="mt-1 text-sm text-red-600">{errors.note.message}</p>
               )}
             </div>
+
+            {/* Help Text */}
+            {getHelpText() && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-blue-800 text-sm">{getHelpText()}</p>
+              </div>
+            )}
 
             {/* Preview */}
             {watchTargetAmount > 0 && (
@@ -303,9 +328,14 @@ export function TargetModal({
                 <div className="text-sm text-green-800 space-y-1">
                   <div>Tipo: {getGoalTypeLabel(watchType)}</div>
                   <div>Valor: {formatCurrency(watchTargetAmount)}</div>
-                  {watchType === 'monthly_funding' && watch('monthly_contribution') > 0 && (
+                  {watchType === 'save_by_date' && watchDueDate && (
                     <div>
-                      Tempo estimado: {Math.ceil(watchTargetAmount / (watch('monthly_contribution') || 1))} meses
+                      Prazo: {new Date(watchDueDate).toLocaleDateString('pt-BR')}
+                    </div>
+                  )}
+                  {(watchType === 'save_monthly' || watchType === 'spend_monthly') && watch('cadence') && (
+                    <div>
+                      Frequência: {watch('cadence') === 'monthly' ? 'Mensal' : 'Semanal'}
                     </div>
                   )}
                 </div>
