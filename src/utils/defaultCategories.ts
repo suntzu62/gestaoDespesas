@@ -24,6 +24,7 @@ export interface DefaultGoal {
   type: GoalType;
   color: string;
   category_name?: string; // Referência para vincular a uma categoria específica
+}
 export type GoalType = 'save_by_date' | 'save_monthly' | 'spend_monthly';
 
 export const DEFAULT_CATEGORY_GROUPS: DefaultCategoryGroup[] = [
