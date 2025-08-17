@@ -49,7 +49,6 @@ export function TargetModal({
       category_id: categoryId, // Add category_id to defaults
     },
   });
-console.log('Form errors:', errors);
 
   const watchType = watch('type');
   const watchTargetAmount = watch('target_amount');
