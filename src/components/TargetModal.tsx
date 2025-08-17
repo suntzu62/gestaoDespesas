@@ -40,7 +40,9 @@ export function TargetModal({
     reset,
     watch,
     setValue,
-  } = useForm<GoalFormData>({
+  } 
+    console.log('Form errors:', errors);
+    = useForm<GoalFormData>({
     resolver: zodResolver(isEditing ? updateGoalSchema : createGoalSchema),
     defaultValues: {
       type: 'save_by_date',
