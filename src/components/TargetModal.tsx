@@ -41,7 +41,6 @@ export function TargetModal({
     watch,
     setValue,
   } 
-    console.log('Form errors:', errors);
     = useForm<GoalFormData>({
     resolver: zodResolver(isEditing ? updateGoalSchema : createGoalSchema),
     defaultValues: {
@@ -49,6 +48,7 @@ export function TargetModal({
       target_amount: 0,
     },
   });
+console.log('Form errors:', errors);
 
   const watchType = watch('type');
   const watchTargetAmount = watch('target_amount');
