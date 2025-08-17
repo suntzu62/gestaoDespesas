@@ -46,6 +46,7 @@ export function TargetModal({
     defaultValues: {
       type: 'save_by_date',
       target_amount: 0,
+      category_id: categoryId, // Add category_id to defaults
     },
   });
 console.log('Form errors:', errors);
@@ -70,6 +71,7 @@ console.log('Form errors:', errors);
         reset({
           type: 'save_by_date',
           target_amount: 0,
+          category_id: categoryId, // Include category_id in reset
           due_date: '',
           cadence: undefined,
           note: '',
@@ -206,6 +208,9 @@ console.log('Form errors:', errors);
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            {/* Hidden category_id field for validation */}
+            <input type="hidden" {...register('category_id')} value={categoryId} />
+
             {/* Goal Type */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
