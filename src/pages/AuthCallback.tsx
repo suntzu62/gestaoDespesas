@@ -9,29 +9,31 @@ export function AuthCallback() {
   const [error, setError] = useState<string>('');
 
   useEffect(() => {
-    // Check for error in URL params
+    // 1. Lidar com parâmetros de erro na URL primeiro
     const urlParams = new URLSearchParams(window.location.search);
     const errorParam = urlParams.get('error');
-    
     if (errorParam) {
       setError('Erro na autenticação. Tente novamente.');
       setTimeout(() => navigate('/signin'), 3000);
       return;
     }
 
-    // Only proceed with redirect logic when loading is complete
-    if (!loading) {
-      if (user) {
-        // If we have a user, redirect based on role
-        const redirectTo = user.role === 'admin' || user.role === 'owner' 
-          ? '/admin-dashboard' 
-          : '/dashboard';
-        navigate(redirectTo, { replace: true });
-      } else {
-        // If not loading and no user, redirect to signin
-        navigate('/signin', { replace: true });
-      }
+    // 2. Se o objeto 'user' estiver disponível, redirecionar para o dashboard
+    if (user) {
+      const redirectTo = user.role === 'admin' || user.role === 'owner' 
+        ? '/admin-dashboard' 
+        : '/dashboard';
+      navigate(redirectTo, { replace: true });
+      return; // Sair do useEffect após a navegação
     }
+
+    // 3. Se o carregamento estiver completo e nenhum usuário for encontrado, redirecionar para o signin
+    // Isso lida com casos em que a autenticação falhou ou nenhuma sessão foi encontrada
+    if (!loading && !user) {
+      navigate('/signin', { replace: true });
+    }
+    // Se 'loading' for true, o componente exibirá o estado de carregamento
+    // e aguardará a atualização de 'user'/'loading'.
   }, [user, loading, navigate]);
 
   if (error) {
