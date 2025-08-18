@@ -9,35 +9,29 @@ export function AuthCallback() {
   const [error, setError] = useState<string>('');
 
   useEffect(() => {
-    const handleCallback = () => {
-      // Check for error in URL params
-      const urlParams = new URLSearchParams(window.location.search);
-      const errorParam = urlParams.get('error');
-      
-      if (errorParam) {
-        setError('Erro na autenticação. Tente novamente.');
-        setTimeout(() => navigate('/signin'), 3000);
-        return;
-      }
+    // Check for error in URL params
+    const urlParams = new URLSearchParams(window.location.search);
+    const errorParam = urlParams.get('error');
+    
+    if (errorParam) {
+      setError('Erro na autenticação. Tente novamente.');
+      setTimeout(() => navigate('/signin'), 3000);
+      return;
+    }
 
-      // If we have a user, redirect based on role
+    // Only proceed with redirect logic when loading is complete
+    if (!loading) {
       if (user) {
+        // If we have a user, redirect based on role
         const redirectTo = user.role === 'admin' || user.role === 'owner' 
           ? '/admin-dashboard' 
           : '/dashboard';
         navigate(redirectTo, { replace: true });
-        return;
-      }
-
-      // If not loading and no user, redirect to signin
-      if (!loading && !user) {
+      } else {
+        // If not loading and no user, redirect to signin
         navigate('/signin', { replace: true });
       }
-    };
-
-    // Small delay to allow auth state to settle
-    const timer = setTimeout(handleCallback, 1000);
-    return () => clearTimeout(timer);
+    }
   }, [user, loading, navigate]);
 
   if (error) {
