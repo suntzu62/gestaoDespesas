@@ -9,7 +9,7 @@ export function AuthCallback() {
   const [error, setError] = useState<string>('');
 
   useEffect(() => {
-    // 1. Lidar com parâmetros de erro na URL primeiro
+    // Lidar com parâmetros de erro na URL primeiro
     const urlParams = new URLSearchParams(window.location.search);
     const errorParam = urlParams.get('error');
     if (errorParam) {
@@ -18,24 +18,46 @@ export function AuthCallback() {
       return;
     }
 
-    // 2. Se o objeto 'user' estiver disponível, redirecionar para o dashboard
+    // Se a autenticação ainda está carregando, aguarde
+    if (loading) {
+      return;
+    }
+
+    // Se o carregamento estiver completo e um usuário for encontrado, redirecionar para o dashboard
     if (user) {
-      const redirectTo = user.role === 'admin' || user.role === 'owner' 
-        ? '/admin-dashboard' 
+      const redirectTo = user.role === 'admin' || user.role === 'owner'
+        ? '/admin-dashboard'
         : '/dashboard';
       navigate(redirectTo, { replace: true });
-      return; // Sair do useEffect após a navegação
+      return;
     }
 
-    // 3. Se o carregamento estiver completo e nenhum usuário for encontrado, redirecionar para o signin
-    // Isso lida com casos em que a autenticação falhou ou nenhuma sessão foi encontrada
-    if (!loading && !user) {
+    // Se o carregamento estiver completo e nenhum usuário for encontrado, redirecionar para o signin
+    // Isso implica que 'loading' é false devido à verificação acima
+    if (!user) {
       navigate('/signin', { replace: true });
     }
-    // Se 'loading' for true, o componente exibirá o estado de carregamento
-    // e aguardará a atualização de 'user'/'loading'.
   }, [user, loading, navigate]);
 
+  // Exibir estado de carregamento enquanto a autenticação está sendo processada
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full text-center">
+          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <TrendingUp className="w-8 h-8 text-green-600" />
+          </div>
+          <div className="mb-4">
+            <Loader2 className="w-8 h-8 text-green-600 animate-spin mx-auto" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Processando...</h2>
+          <p className="text-gray-600">Finalizando sua autenticação</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Exibir estado de erro se um erro ocorreu
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -51,6 +73,7 @@ export function AuthCallback() {
     );
   }
 
+  // Fallback para estados inesperados (idealmente não deve ser alcançado)
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full text-center">
@@ -60,8 +83,8 @@ export function AuthCallback() {
         <div className="mb-4">
           <Loader2 className="w-8 h-8 text-green-600 animate-spin mx-auto" />
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Processando...</h2>
-        <p className="text-gray-600">Finalizando sua autenticação</p>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Verificando...</h2>
+        <p className="text-gray-600">Aguarde enquanto verificamos sua sessão.</p>
       </div>
     </div>
   );
