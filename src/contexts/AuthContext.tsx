@@ -130,47 +130,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let mounted = true;
     let timeoutId: NodeJS.Timeout;
 
-    // Get initial session
-    const getInitialSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (mounted) {
-          setSession(session);
-          
-          if (session?.user) {
-            const profile = await getUserProfile(session.user.id);
-            setUser(profile || createUserFromAuth(session.user));
-          } else {
-            setUser(null);
-          }
-          
-          setLoading(false);
-          // Clear timeout if session loaded successfully
-          if (timeoutId) {
-            clearTimeout(timeoutId);
-          }
-        }
-      } catch (error) {
-        console.error('Error getting initial session:', error);
-        if (mounted) {
-          setLoading(false);
-          // Clear timeout if error occurred
-          if (timeoutId) {
-            clearTimeout(timeoutId);
-          }
-        }
-      }
-    };
-
     // Set timeout to prevent infinite loading
     timeoutId = setTimeout(() => {
-      if (mounted && loading) {
+      if (mounted) {
         console.warn('Auth session loading timeout - forcing loading to false');
         setLoading(false);
       }
     }, 10000); // 10 seconds timeout
-    getInitialSession();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -179,14 +145,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         setSession(session);
 
-        if (event === 'SIGNED_IN' && session?.user) {
-          const profile = await getUserProfile(session.user.id);
-          setUser(profile || createUserFromAuth(session.user));
+        // Logic to set user based on event
+        if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+          if (session?.user) {
+            const profile = await getUserProfile(session.user.id);
+            setUser(profile || createUserFromAuth(session.user));
+          } else {
+            setUser(null);
+          }
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
         }
 
-        setLoading(false);
+        setLoading(false); // Always set loading to false after any auth event
+        if (timeoutId) {
+          clearTimeout(timeoutId); // Clear timeout as soon as an event is received
+        }
       }
     );
 
@@ -197,7 +171,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       subscription.unsubscribe();
     };
-  }, []);
+  }, []); // Empty dependency array means it runs only once on mount
 
   const contextValue: AuthContextType = {
     user,
