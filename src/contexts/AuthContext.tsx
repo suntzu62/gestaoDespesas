@@ -132,6 +132,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let mounted = true;
     let authTimeoutId: NodeJS.Timeout;
+    let sessionTimeoutId: NodeJS.Timeout;
 
     // Get initial session
     const getInitialSession = async () => {
@@ -161,6 +162,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
       } catch (error) {
+        console.error('Error getting initial session:', error);
+        if (mounted) {
           setLoading(false);
         }
       }
