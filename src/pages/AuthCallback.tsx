@@ -67,13 +67,13 @@ export function AuthCallback() {
           }, 2000);
         }
       } catch (error) {
-      } catch (error) {
         setError('Erro no processamento da autenticação. Redirecionando...');
         setTimeout(() => {
           if (mounted) {
             navigate('/signin');
           }
         }, 2000);
+      }
     };
 
     // Set a safety timeout
