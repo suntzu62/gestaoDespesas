@@ -144,13 +144,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(profile || createUserFromAuth(session.user));
             console.log('❌ [AuthContext] No session user found');
           }
-          
-          console.log('✅ [AuthContext] Initial session processing complete');
-          // Clear timeout if session loaded successfully
-          if (sessionTimeoutId) {
-            clearTimeout(sessionTimeoutId);
-                  }
-              } catch (error) {
         if (mounted) {
           setLoading(false);
         }
@@ -170,6 +163,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (event === 'SIGNED_IN' && session?.user) {
           const profile = await getUserProfile(session.user.id);
           setUser(profile || createUserFromAuth(session.user));
+        } else {
+          setUser(null);
+        }
+        
+        setLoading(false);
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
         }

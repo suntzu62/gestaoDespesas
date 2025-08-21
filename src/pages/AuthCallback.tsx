@@ -13,7 +13,6 @@ export function AuthCallback() {
 
     const handleCallback = async () => {
       try {
-
         // Check for errors in URL first
         const urlParams = new URLSearchParams(window.location.search);
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
@@ -25,9 +24,9 @@ export function AuthCallback() {
           return;
         }
 
-
         // Wait a moment for Supabase to process the OAuth callback
         await new Promise(resolve => setTimeout(resolve, 1000));
+        
         // Get the current session
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
@@ -42,14 +41,15 @@ export function AuthCallback() {
         if (session?.user) {
           console.log('✅ [AuthCallback] User found in session, fetching profile...');
           setDebugInfo('Usuário encontrado, buscando perfil...');
-          
           // Get user profile
           const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', session.user.id)
+            .single();
+            
           if (profileError) {
-            console.error('Profile error:', profileError);
+            // Profile error is not critical, continue with redirect
           }
 
           console.log('🎯 [AuthCallback] Redirecting to dashboard...');
@@ -59,6 +59,10 @@ export function AuthCallback() {
           if (mounted) {
             navigate('/dashboard', { replace: true });
           }
+        } else {
+          throw new Error('No user found in session');
+        }
+      } catch (error) {
           setDebugInfo('Nenhum usuário encontrado na sessão');
           throw new Error('No user found in session');
         }
@@ -68,6 +72,7 @@ export function AuthCallback() {
             navigate('/signin');
           }
         }, 2000);
+      }
       }
     };
 
