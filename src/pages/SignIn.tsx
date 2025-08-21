@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { TrendingUp } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -10,11 +10,19 @@ import { AppleAuthButton } from '../components/AppleAuthButton';
 
 export function SignIn() {
   const { signIn, signInWithGoogle, signInWithApple } = useAuth();
+  const { user, loading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const navigate = useNavigate();
+
+  // Redirect authenticated users to dashboard
+  useEffect(() => {
+    if (!loading && user) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, loading, navigate]);
 
   const handleEmailSignIn = async (data: SignInData) => {
     setLoading(true);

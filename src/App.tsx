@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from './contexts/AuthContext';
 import { HeroSection } from './components/HeroSection';
 import { InteractiveDemoSection } from './components/InteractiveDemoSection';
 import { BudgetSimulator } from './components/BudgetSimulator';
@@ -771,6 +773,31 @@ const ChatWidget = () => {
 };
 
 function App() {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect authenticated users to dashboard
+  useEffect(() => {
+    if (!loading && user) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, loading, navigate]);
+
+  // Show loading while checking authentication
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <TrendingUp className="w-8 h-8 text-green-600" />
+          </div>
+          <div className="w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-white">
       <Header />
