@@ -11,7 +11,7 @@ import { AppleAuthButton } from '../components/AppleAuthButton';
 export function SignIn() {
   const { signIn, signInWithGoogle, signInWithApple } = useAuth();
   const { user, loading } = useAuth();
-  const [loading, setLoading] = useState(false);
+  const [emailAuthLoading, setEmailAuthLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
   const [error, setError] = useState<string>('');
@@ -25,7 +25,7 @@ export function SignIn() {
   }, [user, loading, navigate]);
 
   const handleEmailSignIn = async (data: SignInData) => {
-    setLoading(true);
+    setEmailAuthLoading(true);
     setError('');
 
     try {
@@ -35,7 +35,7 @@ export function SignIn() {
       const errorResponse = handleAuthError(err);
       setError(errorResponse.message);
     } finally {
-      setLoading(false);
+      setEmailAuthLoading(false);
     }
   };
 
@@ -86,7 +86,7 @@ export function SignIn() {
             <AuthForm
               mode="signin"
               onSubmit={handleEmailSignIn}
-              loading={loading}
+              loading={emailAuthLoading}
               error={error}
             />
 
