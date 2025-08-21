@@ -13,6 +13,7 @@ export function AuthCallback() {
     let redirectTimeout: NodeJS.Timeout;
 
     const handleCallback = async () => {
+      try {
         // Check for errors in URL first
         const urlParams = new URLSearchParams(window.location.search);
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
