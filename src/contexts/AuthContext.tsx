@@ -134,28 +134,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         console.log('🔄 [AuthContext] Getting initial session...');
         
+        const { data: { session } } = await supabase.auth.getSession();
+        
         if (mounted) {
           setSession(session);
           
           if (session?.user) {
             const profile = await getUserProfile(session.user.id);
             console.log('📄 [AuthContext] Profile fetched:', profile ? 'SUCCESS' : 'FALLBACK');
+            setUser(profile || createUserFromAuth(session.user));
           } else {
+            setUser(null);
           }
         }
       } catch (error) {
         // Handle any errors silently
+        if (mounted) {
+          setLoading(false);
+        }
       } finally {
         if (mounted) {
           setLoading(false);
         }
-          }
-        }
-        if (mounted) {
-          setLoading(false);
-        }
-      } catch (error) {
+      }
     };
+    
     getInitialSession();
 
     // Listen for auth changes
