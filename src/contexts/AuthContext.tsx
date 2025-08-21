@@ -149,13 +149,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Clear timeout if session loaded successfully
           if (sessionTimeoutId) {
             clearTimeout(sessionTimeoutId);
-        }
-      } catch (error) {
+                  }
+              } catch (error) {
         if (mounted) {
           setLoading(false);
         }
       }
-    };
+          };
+    }
 
     getInitialSession();
 
