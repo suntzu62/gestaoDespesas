@@ -41,6 +41,7 @@ export function AuthCallback() {
           console.log('✅ [AuthCallback] User found in session, fetching profile...');
           setDebugInfo('Usuário encontrado, buscando perfil...');
           // Get user profile
+          const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', session.user.id)
