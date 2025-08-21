@@ -6,13 +6,13 @@ import { supabase } from '../lib/supabase';
 export function AuthCallback() {
   const navigate = useNavigate();
   const [error, setError] = useState<string>('');
+  const [debugInfo, setDebugInfo] = useState<string>('');
 
   useEffect(() => {
     let mounted = true;
     let redirectTimeout: NodeJS.Timeout;
 
     const handleCallback = async () => {
-      try {
         // Check for errors in URL first
         const urlParams = new URLSearchParams(window.location.search);
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
@@ -37,12 +37,10 @@ export function AuthCallback() {
 
         console.log('📊 [AuthCallback] Session check:', session ? 'EXISTS' : 'NULL');
         setDebugInfo(`Sessão: ${session ? 'ENCONTRADA' : 'NÃO ENCONTRADA'}`);
-
         if (session?.user) {
           console.log('✅ [AuthCallback] User found in session, fetching profile...');
           setDebugInfo('Usuário encontrado, buscando perfil...');
           // Get user profile
-          const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', session.user.id)
@@ -54,26 +52,27 @@ export function AuthCallback() {
 
           console.log('🎯 [AuthCallback] Redirecting to dashboard...');
           setDebugInfo('Redirecionando para dashboard...');
-          await new Promise(resolve => setTimeout(resolve, 500));
           
           if (mounted) {
             navigate('/dashboard', { replace: true });
           }
         } else {
-          throw new Error('No user found in session');
+          setDebugInfo('Nenhum usuário encontrado na sessão');
+          setError('Erro no processamento da autenticação. Redirecionando...');
+          setTimeout(() => {
+            if (mounted) {
+              navigate('/signin');
+            }
+          }, 2000);
         }
       } catch (error) {
-          setDebugInfo('Nenhum usuário encontrado na sessão');
-          throw new Error('No user found in session');
-        }
+      } catch (error) {
         setError('Erro no processamento da autenticação. Redirecionando...');
         setTimeout(() => {
           if (mounted) {
             navigate('/signin');
           }
         }, 2000);
-      }
-      }
     };
 
     // Set a safety timeout

@@ -133,7 +133,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const getInitialSession = async () => {
       try {
         console.log('🔄 [AuthContext] Getting initial session...');
-        const { data: { session } } = await supabase.auth.getSession();
         
         if (mounted) {
           setSession(session);
@@ -141,16 +140,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (session?.user) {
             const profile = await getUserProfile(session.user.id);
             console.log('📄 [AuthContext] Profile fetched:', profile ? 'SUCCESS' : 'FALLBACK');
-            setUser(profile || createUserFromAuth(session.user));
-            console.log('❌ [AuthContext] No session user found');
+          } else {
           }
+        }
+      } catch (error) {
+        // Handle any errors silently
+      } finally {
         if (mounted) {
           setLoading(false);
         }
-      }
-          };
-    }
-
+          }
+        }
+        if (mounted) {
+          setLoading(false);
+        }
+      } catch (error) {
+    };
     getInitialSession();
 
     // Listen for auth changes
@@ -163,11 +168,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (event === 'SIGNED_IN' && session?.user) {
           const profile = await getUserProfile(session.user.id);
           setUser(profile || createUserFromAuth(session.user));
-        } else {
-          setUser(null);
-        }
-        
-        setLoading(false);
         } else if (event === 'SIGNED_OUT') {
           setUser(null);
         }
