@@ -18,19 +18,18 @@ export function AuthCallback() {
       return;
     }
 
-    // 2. Se o objeto 'user' estiver disponível, redirecionar para o dashboard
-    if (user) {
-      const redirectTo = user.role === 'admin' || user.role === 'owner' 
-        ? '/admin-dashboard' 
-        : '/dashboard';
-      navigate(redirectTo, { replace: true });
-      return; // Sair do useEffect após a navegação
-    }
-
-    // 3. Se o carregamento estiver completo e nenhum usuário for encontrado, redirecionar para o signin
-    // Isso lida com casos em que a autenticação falhou ou nenhuma sessão foi encontrada
-    if (!loading && !user) {
-      navigate('/signin', { replace: true });
+    // 2. Somente prossiga se o estado de autenticação terminou de carregar
+    if (!loading) {
+      if (user) {
+        // Usuário autenticado, redirecionar para o dashboard
+        const redirectTo = user.role === 'admin' || user.role === 'owner'
+          ? '/admin-dashboard'
+          : '/dashboard';
+        navigate(redirectTo, { replace: true });
+      } else {
+        // Autenticação finalizada, mas nenhum usuário encontrado (ex: login falhou, sem sessão)
+        navigate('/signin', { replace: true });
+      }
     }
     // Se 'loading' for true, o componente exibirá o estado de carregamento
     // e aguardará a atualização de 'user'/'loading'.
