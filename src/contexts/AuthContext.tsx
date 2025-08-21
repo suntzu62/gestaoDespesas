@@ -31,6 +31,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Get user profile from database
   const getUserProfile = async (userId: string): Promise<AuthUser | null> => {
     try {
+      console.log('📄 [AuthContext] Fetching profile for user:', userId);
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
@@ -39,9 +40,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error || !profile) {
         console.error('Error fetching profile:', error);
+        console.log('⚠️ [AuthContext] Profile not found, will use auth user data as fallback');
         return null;
       }
 
+      console.log('✅ [AuthContext] Profile fetched successfully:', profile.name);
       return {
         id: profile.id,
         email: profile.email,
@@ -128,27 +131,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Handle auth state changes
   useEffect(() => {
     let mounted = true;
-    let timeoutId: NodeJS.Timeout;
+    let sessionTimeoutId: NodeJS.Timeout;
+    let authTimeoutId: NodeJS.Timeout;
 
     // Get initial session
     const getInitialSession = async () => {
       try {
+        console.log('🔄 [AuthContext] Getting initial session...');
         const { data: { session } } = await supabase.auth.getSession();
         
         if (mounted) {
+          console.log('📊 [AuthContext] Initial session:', session ? 'EXISTS' : 'NULL');
           setSession(session);
           
           if (session?.user) {
+            console.log('👤 [AuthContext] Session user found, fetching profile...');
             const profile = await getUserProfile(session.user.id);
+            console.log('📄 [AuthContext] Profile fetched:', profile ? 'SUCCESS' : 'FALLBACK');
             setUser(profile || createUserFromAuth(session.user));
           } else {
+            console.log('❌ [AuthContext] No session user found');
             setUser(null);
           }
           
           setLoading(false);
+          console.log('✅ [AuthContext] Initial session processing complete');
           // Clear timeout if session loaded successfully
-          if (timeoutId) {
-            clearTimeout(timeoutId);
+          if (sessionTimeoutId) {
+            clearTimeout(sessionTimeoutId);
           }
         }
       } catch (error) {
@@ -156,20 +166,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (mounted) {
           setLoading(false);
           // Clear timeout if error occurred
-          if (timeoutId) {
-            clearTimeout(timeoutId);
+          if (sessionTimeoutId) {
+            clearTimeout(sessionTimeoutId);
           }
         }
       }
     };
 
     // Set timeout to prevent infinite loading
-    timeoutId = setTimeout(() => {
+    sessionTimeoutId = setTimeout(() => {
       if (mounted && loading) {
         console.warn('Auth session loading timeout - forcing loading to false');
         setLoading(false);
       }
-    }, 10000); // 10 seconds timeout
+    }, 8000); // 8 seconds timeout
+    
     getInitialSession();
 
     // Listen for auth changes
@@ -177,23 +188,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       async (event, session) => {
         if (!mounted) return;
 
+        console.log(`🔔 [AuthContext] Auth state change: ${event}`, session ? 'with session' : 'no session');
         setSession(session);
 
         if (event === 'SIGNED_IN' && session?.user) {
+          console.log('🔑 [AuthContext] SIGNED_IN event - fetching profile...');
           const profile = await getUserProfile(session.user.id);
+          console.log('📄 [AuthContext] Profile result:', profile ? 'SUCCESS' : 'FALLBACK');
           setUser(profile || createUserFromAuth(session.user));
         } else if (event === 'SIGNED_OUT') {
+          console.log('🚪 [AuthContext] SIGNED_OUT event');
           setUser(null);
         }
 
         setLoading(false);
+        console.log(`✅ [AuthContext] Auth state change processing complete for: ${event}`);
       }
     );
 
+    // Additional timeout for auth state changes
+    authTimeoutId = setTimeout(() => {
+      if (mounted && loading) {
+        console.warn('Auth state change timeout - forcing loading to false');
+        setLoading(false);
+      }
+    }, 12000); // 12 seconds timeout for auth state changes
+
     return () => {
       mounted = false;
-      if (timeoutId) {
-        clearTimeout(timeoutId);
+      if (sessionTimeoutId) {
+        clearTimeout(sessionTimeoutId);
+      }
+      if (authTimeoutId) {
+        clearTimeout(authTimeoutId);
       }
       subscription.unsubscribe();
     };
