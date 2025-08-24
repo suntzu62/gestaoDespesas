@@ -271,7 +271,7 @@ export const HeroSection = () => {
 </div>
           </div>
         </div>
-      </div>
+    
 
       {/* Bottom Wave */}
       <div className="absolute bottom-0 left-0 w-full">
