@@ -56,18 +56,15 @@ export const trackEvent = (eventName: string, properties: Record<string, any> = 
       gtag('event', eventName, properties);
     }
 
-    // Example: Send to custom endpoint
-    if (process.env.NODE_ENV === 'production') {
-      fetch('/api/analytics/track', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(event)
-      }).catch(err => {
-        console.warn('Analytics tracking failed:', err);
-      });
-    }
+    // TODO: Implementar função serverless para analytics
+    // Por ora, desabilitado para evitar 404s
+    // if (process.env.NODE_ENV === 'production') {
+    //   fetch('/.netlify/functions/analytics', {
+    //     method: 'POST',
+    //     headers: { 'Content-Type': 'application/json' },
+    //     body: JSON.stringify(event)
+    //   }).catch(err => console.warn('Analytics failed:', err));
+    // }
   } catch (error) {
     console.warn('Error tracking event:', error);
   }

@@ -1,6 +1,15 @@
-# BolsoZen - Sistema de Autenticação
+# BolsoZen - Controle Financeiro via WhatsApp
 
-Sistema de autenticação completo para o SaaS de gestão financeira BolsoZen, utilizando Supabase e React.
+Sistema de controle financeiro WhatsApp-first. Envie comprovantes pelo chat, confirme em 1 clique, veja insights no dashboard.
+
+## 🚀 Visão Geral
+
+O BolsoZen revoluciona o controle financeiro usando WhatsApp como interface principal:
+
+1. **📱 Envie comprovante** - Foto/print via WhatsApp
+2. **🤖 IA processa** - OCR + classificação automática
+3. **✅ Confirme em 1 clique** - Botões interativos no chat
+4. **📊 Veja insights** - Dashboard web + comandos WhatsApp
 
 ## 🚀 Setup Inicial
 

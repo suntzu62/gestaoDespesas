@@ -10,26 +10,26 @@ export const HowItWorksSection = () => {
   const steps = [
     {
       number: 1,
-      icon: <Mail className="w-8 h-8" />,
-      title: "Conectar e-mail/banco",
-      description: "Com seu consentimento, capturamos boletos do seu email e conectamos com seu banco via Pix/Open Finance. 100% seguro e auditável.",
-      features: ["Consentimento explícito", "Criptografia bancária", "Auditoria LGPD"],
+      icon: <Smartphone className="w-8 h-8" />,
+      title: "Encaminhe comprovante",
+      description: "Envie foto ou print do comprovante pelo WhatsApp. PIX, cartão, boleto - qualquer formato. Nosso OCR processa tudo automaticamente.",
+      features: ["WhatsApp oficial", "OCR inteligente", "Formatos diversos"],
       image: "https://images.pexels.com/photos/4386370/pexels-photo-4386370.jpeg?auto=compress&cs=tinysrgb&w=400"
     },
     {
       number: 2,
       icon: <CheckCircle className="w-8 h-8" />,
-      title: "Revisar sugestões (1 clique)",
-      description: "Nossa IA identifica transações e sugere categorias baseadas em padrões brasileiros. Você apenas confirma com 1 clique.",
-      features: ["IA treinada no Brasil", "Sugestões inteligentes", "Confirmação rápida"],
+      title: "Confirme com 1 toque",
+      description: "IA identifica valor, data e estabelecimento. Sugere categoria baseada em padrões brasileiros. Confirme ou edite direto no chat.",
+      features: ["IA em português", "Sugestões contextuais", "Botões interativos"],
       image: "https://images.pexels.com/photos/4386431/pexels-photo-4386431.jpeg?auto=compress&cs=tinysrgb&w=400"
     },
     {
       number: 3,
       icon: <Target className="w-8 h-8" />,
-      title: "Acompanhar metas e fluxo",
-      description: "Veja suas metas de economia em tempo real e previsão de fluxo de caixa. Receba alertas antes de estourar o orçamento.",
-      features: ["Metas visuais", "Alertas inteligentes", "Fluxo projetado"],
+      title: "Veja no painel",
+      description: "Dashboard atualiza em tempo real. Comandos no WhatsApp (/resumo, /categorias) para consultas rápidas. Insights automáticos.",
+      features: ["Dashboard realtime", "Comandos WhatsApp", "Insights automáticos"],
       image: "https://images.pexels.com/photos/4386321/pexels-photo-4386321.jpeg?auto=compress&cs=tinysrgb&w=400"
     }
   ];
@@ -140,17 +140,17 @@ export const HowItWorksSection = () => {
         <div className="mt-20 text-center">
           <div className="bg-gradient-to-r from-green-600 to-blue-600 rounded-2xl p-8 text-white">
             <h3 className="text-2xl font-bold mb-4">
-              Pronto para automatizar suas finanças?
+              Pronto para controlar suas finanças via WhatsApp?
             </h3>
             <p className="text-green-100 mb-6 max-w-2xl mx-auto">
-              Milhares de brasileiros já economizaram tempo e dinheiro com o BolsoZen. 
-              Setup gratuito em 5 minutos.
+              Junte-se a milhares de brasileiros que controlam suas finanças pelo WhatsApp. 
+              Comece hoje mesmo!
             </p>
             <button
               onClick={handleCTAClick}
               className="bg-white text-green-600 px-8 py-4 rounded-xl font-semibold hover:bg-gray-50 transition-colors inline-flex items-center gap-2"
             >
-              Começar gratuitamente
+              Iniciar no WhatsApp
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>

@@ -28,6 +28,8 @@ export function SmartInbox({ onTransactionConfirmed }: SmartInboxProps) {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [editingItem, setEditingItem] = useState<InboxItem | null>(null);
+  
+  const whatsappNumber = "5511999999999"; // Substitua pelo número real
 
   useEffect(() => {
     if (user?.id) {
@@ -204,18 +206,32 @@ export function SmartInbox({ onTransactionConfirmed }: SmartInboxProps) {
           {inboxItems.length === 0 ? (
             <div className="text-center py-12">
               <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Inbox className="w-8 h-8 text-blue-400" />
+                <Smartphone className="w-8 h-8 text-blue-400" />
               </div>
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                Sua inbox está vazia
+                Smart Inbox vazia
               </h3>
               <p className="text-gray-500 mb-6 max-w-md mx-auto">
-                Quando você conectar seu email, transações aparecerão aqui automaticamente 
-                para confirmação em 1 clique.
+                Envie comprovantes pelo WhatsApp e eles aparecerão aqui para 
+                confirmação em 1 clique. Teste com alguns exemplos!
               </p>
-              <button className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                Conectar Email
-              </button>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <a 
+                  href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent("Olá! Quero testar o BolsoZen. Como envio meu primeiro comprovante?")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors inline-flex items-center gap-2"
+                >
+                  <Smartphone className="w-4 h-4" />
+                  Enviar pelo WhatsApp
+                </a>
+                <button 
+                  onClick={() => {/* TODO: Implementar seed de exemplos */}}
+                  className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Adicionar Exemplos
+                </button>
+              </div>
             </div>
           ) : (
             <div className="space-y-4">

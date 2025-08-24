@@ -44,11 +44,13 @@ const Header = () => {
           <div className="hidden md:flex items-center space-x-4">
             <a href="/signin" className="text-gray-600 hover:text-green-600 transition-colors font-medium">Login</a>
             <a 
-              href="/signup" 
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
               className="bg-green-600 text-white px-6 py-3 rounded-xl hover:bg-green-700 transition-colors font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
               onClick={() => handleCTAClick('header')}
             >
-              Comece Grátis
+              Comece pelo WhatsApp
             </a>
           </div>
 
@@ -71,11 +73,13 @@ const Header = () => {
             <div className="border-t border-gray-100 pt-4 mt-4 space-y-2">
               <a href="/signin" className="block py-3 text-gray-600 font-medium">Login</a>
               <a 
-                href="/signup" 
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="block w-full bg-green-600 text-white px-4 py-3 rounded-xl text-center font-semibold"
                 onClick={() => handleCTAClick('header-mobile')}
               >
-                Comece Grátis
+                Comece pelo WhatsApp
               </a>
             </div>
           </div>
@@ -89,6 +93,10 @@ const Footer = () => {
   const handleCTAClick = (source: string) => {
     trackEvent('cta_click', { source, location: 'footer' });
   };
+  
+  const whatsappNumber = "5511999999999"; // Substitua pelo número real
+  const whatsappMessage = encodeURIComponent("Olá! Quero organizar minhas finanças com o BolsoZen 💰");
+  const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`;
 
   return (
     <footer className="bg-gray-900 text-white py-20">
@@ -173,11 +181,13 @@ const Footer = () => {
             </div>
             <div className="flex space-x-6">
               <a 
-                href="/signup" 
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="bg-green-600 text-white px-6 py-3 rounded-xl hover:bg-green-700 transition-colors font-semibold"
                 onClick={() => handleCTAClick('footer')}
               >
-                Comece Grátis
+                Comece pelo WhatsApp
               </a>
               <a 
                 href="/signin" 
@@ -197,6 +207,10 @@ const Footer = () => {
 function App() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  
+  const whatsappNumber = "5511999999999"; // Substitua pelo número real
+  const whatsappMessage = encodeURIComponent("Olá! Quero organizar minhas finanças com o BolsoZen 💰");
+  const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`;
 
   // Redirect authenticated users to dashboard
   useEffect(() => {

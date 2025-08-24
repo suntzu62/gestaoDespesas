@@ -57,26 +57,26 @@ export const TestimonialsSection = () => {
     {
       name: "Ana Carolina Silva",
       role: "Arquiteta, São Paulo",
-      content: "Em 60 dias usando o BolsoZen, quitei R$ 3.200 em dívidas e criei o hábito de economizar. A captura automática me fez ver onde estava perdendo dinheiro.",
+      content: "Agora é só tirar foto do comprovante e enviar no WhatsApp. Em 60 dias organizei R$ 3.200 que estavam bagunçados. A IA acerta a categoria quase sempre!",
       rating: 5,
       verified: true,
-      result: "R$ 3.200 economizados em 2 meses"
+      result: "R$ 3.200 organizados via WhatsApp"
     },
     {
       name: "Carlos Mendes",
       role: "Desenvolvedor, Rio de Janeiro",
-      content: "Finalmente consegui controlar meus gastos com delivery! O app captura tudo automaticamente e me avisa antes de estourar o orçamento da categoria.",
+      content: "Muito mais prático que digitar no app! Envio print do iFood pelo WhatsApp e em 2 segundos tá categorizado. Nunca mais esqueci de lançar um gasto.",
       rating: 5,
       verified: true,
-      result: "47% de redução em gastos supérfluos"
+      result: "100% dos gastos capturados"
     },
     {
       name: "Juliana Costa",
       role: "Consultora, Belo Horizonte",
-      content: "Testei vários apps, mas só o BolsoZen realmente funciona no automático. Em 3 meses formei minha reserva de emergência sem esforço extra.",
+      content: "O comando /resumo me dá o status das finanças na hora. Em 3 meses consegui formar minha reserva só organizando melhor com WhatsApp + dashboard.",
       rating: 5,
       verified: true,
-      result: "Reserva de emergência completa em 90 dias"
+      result: "Controle total em 90 dias"
     }
   ];
 

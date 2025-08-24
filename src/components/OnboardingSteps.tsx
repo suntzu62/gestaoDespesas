@@ -16,22 +16,22 @@ export function OnboardingSteps() {
   const steps: OnboardingStep[] = [
     {
       id: 1,
-      title: "Personalize seu plano",
-      description: "Refine suas categorias e adicione metas. Targets são como uma nota para si mesmo para ajudar a dar a cada real um trabalho quando chegar a hora. Comece com apenas alguns!",
+      title: "Salve nosso contato no WhatsApp",
+      description: "Adicione BolsoZen (+55 11 99999-9999) aos seus contatos. Envie /start para começar a usar. É só enviar comprovantes e confirmar!",
       completed: false,
       current: currentStep === 1,
     },
     {
       id: 2,
-      title: "Defina suas metas",
-      description: "Configure metas para suas categorias de economia e gastos importantes.",
+      title: "Aprenda os comandos básicos",
+      description: "Use /resumo para ver totais, /categorias para listar suas categorias, /ajuda para comandos disponíveis.",
       completed: currentStep > 2,
       current: currentStep === 2,
     },
     {
       id: 3,
-      title: "Importe transações",
-      description: "Conecte suas contas ou importe transações para começar a acompanhar seus gastos.",
+      title: "Envie seu primeiro comprovante",
+      description: "Tire foto de qualquer comprovante (PIX, cartão, boleto) e envie pelo WhatsApp. A IA processará e sugerirá categoria.",
       completed: currentStep > 3,
       current: currentStep === 3,
     },

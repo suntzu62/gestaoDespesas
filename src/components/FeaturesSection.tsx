@@ -9,29 +9,29 @@ export const FeaturesSection = () => {
   
   const features = [
     {
-      icon: <Inbox className="w-8 h-8" />,
-      title: "Zero digitação no dia a dia",
-      description: "Smart Inbox captura boletos do email automaticamente. Gastos no cartão e Pix chegam sozinhos. Você só revisa e confirma.",
-      badge: "Smart Inbox",
-      metrics: "87% menos tempo digitando",
+      icon: <Smartphone className="w-8 h-8" />,
+      title: "WhatsApp como interface principal",
+      description: "Envie comprovantes (foto/print) pelo WhatsApp. OCR + IA processam automaticamente. Confirme com botões interativos no chat.",
+      badge: "WhatsApp Bot",
+      metrics: "1 toque para confirmar",
       color: "from-green-500 to-green-600"
     },
     {
-      icon: <FileText className="w-8 h-8" />,
-      title: "Contas que chegam sozinhas",
-      description: "DDA (Débito Direto Autorizado) integrado. Boletos de luz, água, cartão chegam automaticamente no app. Sem surpresas.",
-      badge: "DDA",
-      metrics: "100% dos boletos cobertos",
+      icon: <Zap className="w-8 h-8" />,
+      title: "OCR + IA em português",
+      description: "Reconhecimento ótico treinado para comprovantes brasileiros. Identifica valores, datas, estabelecimentos e sugere categorias.",
+      badge: "OCR BR",
+      metrics: "95% de precisão",
       color: "from-blue-500 to-blue-600"
     },
     {
-      icon: <CreditCard className="w-8 h-8" />,
-      title: "Pagamentos no app",
-      description: "Em breve: Pague suas contas direto no BolsoZen via Pix/Open Finance. Orçamento e pagamento integrados numa ferramenta só.",
-      badge: "Em desenvolvimento",
-      metrics: "Roadmap Q2 2025",
+      icon: <Target className="w-8 h-8" />,
+      title: "Dashboard com insights",
+      description: "Visualize seus gastos por categoria, evolução mensal e metas. Use comandos /resumo direto no WhatsApp para consultas rápidas.",
+      badge: "Insights IA",
+      metrics: "Comandos instantâneos",
       color: "from-purple-500 to-purple-600",
-      isRoadmap: true
+      isRoadmap: false
     }
   ];
 

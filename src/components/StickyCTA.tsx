@@ -5,6 +5,10 @@ import { trackEvent } from '../utils/telemetry';
 export const StickyCTA = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
+  
+  const whatsappNumber = "5511999999999"; // Substitua pelo número real
+  const whatsappMessage = encodeURIComponent("Olá! Quero organizar minhas finanças com o BolsoZen 💰");
+  const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -26,7 +30,7 @@ export const StickyCTA = () => {
   const handleCTAClick = () => {
     trackEvent('cta_click', { 
       source: 'sticky_cta',
-      button_text: 'Começar grátis'
+      button_text: 'Começar pelo WhatsApp'
     });
   };
 
@@ -45,17 +49,19 @@ export const StickyCTA = () => {
       <div className="bg-green-600 text-white p-4 shadow-2xl">
         <div className="flex items-center justify-between">
           <div className="flex-1 mr-4">
-            <div className="font-semibold text-lg">Pare de viver no vermelho</div>
-            <div className="text-green-100 text-sm">Setup gratuito em 5 minutos</div>
+            <div className="font-semibold text-lg">Controle via WhatsApp</div>
+            <div className="text-green-100 text-sm">Envie comprovante e confirme</div>
           </div>
           
           <div className="flex items-center gap-3">
             <a
-              href="/signup"
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
               onClick={handleCTAClick}
               className="bg-white text-green-600 px-6 py-3 rounded-xl font-semibold hover:bg-gray-50 transition-colors flex items-center gap-2 shadow-lg"
             >
-              Começar grátis
+              Começar pelo WhatsApp
               <ArrowRight className="w-4 h-4" />
             </a>
             
