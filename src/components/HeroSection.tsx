@@ -204,5 +204,3 @@ export const HeroSection = () => {
     </section>
   );
 };
-  )
-}
