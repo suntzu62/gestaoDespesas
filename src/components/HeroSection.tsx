@@ -186,11 +186,16 @@ export const HeroSection = () => {
               </div>
             </div>
 
-            <div className="absolute top-1/2 -left-8 bg-blue-600 text-white rounded-lg shadow-lg p-3 transform -rotate-12" style={{ width: '110px', height: '48px' }}>
-              <div className="flex items-center gap-1">
-                <Shield className="w-4 h-4 text-white" />
-              <div className="text-xs font-medium">Meta atingida! 🎉</div>
-            </div>
+            {/* Floating badge (azul) */}
+<div
+  className="absolute top-1/2 -left-8 bg-blue-600 text-white rounded-lg shadow-lg p-3 transform -rotate-12"
+  style={{ width: '110px', height: '48px' }}
+>
+  <div className="flex items-center gap-1">
+    <Shield className="w-4 h-4 text-white" />
+    <div className="text-xs font-medium">Meta atingida! 🎉</div>
+  </div>
+</div>
           </div>
         </div>
       </div>
@@ -204,8 +209,3 @@ export const HeroSection = () => {
     </section>
   );
 };
-}
-  )
-}
-  )
-}
