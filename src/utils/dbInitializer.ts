@@ -1,5 +1,6 @@
 import { supabase, financeQueries } from '../lib/supabase';
 import { DEFAULT_CATEGORY_GROUPS, DEFAULT_GOALS } from './defaultCategories';
+import { seedInboxItemsForUser } from './seedInboxData';
 
 /**
  * Inicializa o orçamento do usuário com categorias e grupos pré-definidos
@@ -63,6 +64,14 @@ export async function initializeUserBudget(userId: string): Promise<boolean> {
         throw categoriesError;
       }
 
+    }
+
+    // Seed sample inbox items for demonstration
+    try {
+      await seedInboxItemsForUser(userId);
+    } catch (error) {
+      console.error('Error seeding inbox items:', error);
+      // Don't fail initialization if seeding fails
     }
 
     // Criar metas padrão (opcional - ligadas às categorias de economia)

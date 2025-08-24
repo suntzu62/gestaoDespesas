@@ -25,6 +25,24 @@ export interface Profile {
 
 export type UserRole = 'collaborator' | 'admin' | 'owner';
 
+// Inbox types
+export type InboxStatus = 'pending' | 'confirmed' | 'rejected';
+
+export interface InboxItem {
+  id: string;
+  user_id: string;
+  description: string;
+  amount: number;
+  date: string;
+  suggested_category_id?: string;
+  status: InboxStatus;
+  source: string;
+  raw_data: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+  suggested_category?: Category;
+}
+
 export interface AuthUser {
   id: string;
   email: string;
@@ -149,6 +167,26 @@ export interface CategoryWithGroup extends Category {
 
 export interface CategoryGroupWithCategories extends CategoryGroup {
   categories: CategoryWithGroup[];
+}
+
+// Dashboard summary types
+export interface DashboardSummary {
+  totalSpent: number;
+  totalIncome: number;
+  availableAmount: number;
+  pendingInboxItems: number;
+}
+
+export interface RecentTransaction {
+  id: string;
+  description: string;
+  amount: number;
+  date: string;
+  category?: {
+    name: string;
+    color: string;
+    icon?: string;
+  };
 }
 
 // Utility functions for finance operations
@@ -643,6 +681,192 @@ export const financeQueries = {
   },
 
   // ============ GOALS/TARGETS FUNCTIONS - NEW MVP APPROACH ============
+
+  // ============ INBOX FUNCTIONS ============
+
+  // Get user's pending inbox items
+  getUserInboxItems: async (userId: string, status?: InboxStatus) => {
+    let query = supabase
+      .from('inbox_items')
+      .select(`
+        *,
+        suggested_category:categories(name, color, icon)
+      `)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (status) {
+      query = query.eq('status', status);
+    }
+
+    return query;
+  },
+
+  // Create inbox item
+  createInboxItem: async (userId: string, inboxData: {
+    description: string;
+    amount: number;
+    date: string;
+    suggested_category_id?: string;
+    source?: string;
+    raw_data?: Record<string, any>;
+  }) => {
+    const { data, error } = await supabase
+      .from('inbox_items')
+      .insert({
+        user_id: userId,
+        description: inboxData.description,
+        amount: inboxData.amount,
+        date: inboxData.date,
+        suggested_category_id: inboxData.suggested_category_id || null,
+        source: inboxData.source || 'email',
+        raw_data: inboxData.raw_data || {},
+        status: 'pending' as InboxStatus,
+      })
+      .select()
+      .maybeSingle();
+
+    if (error) throw error;
+    return data;
+  },
+
+  // Confirm inbox item (convert to transaction)
+  confirmInboxItem: async (userId: string, inboxItemId: string, accountId: string, categoryId?: string) => {
+    // Get the inbox item
+    const { data: inboxItem, error: fetchError } = await supabase
+      .from('inbox_items')
+      .select('*')
+      .eq('id', inboxItemId)
+      .eq('user_id', userId)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    // Create transaction
+    const transactionType = inboxItem.amount > 0 ? 'income' : 'expense';
+    const { data: transaction, error: transactionError } = await supabase
+      .from('transactions')
+      .insert({
+        user_id: userId,
+        account_id: accountId,
+        category_id: categoryId || inboxItem.suggested_category_id || null,
+        description: inboxItem.description,
+        amount: inboxItem.amount,
+        type: transactionType,
+        date: inboxItem.date,
+        is_cleared: true,
+        created_at: new Date().toISOString(),
+      })
+      .select()
+      .maybeSingle();
+
+    if (transactionError) throw transactionError;
+
+    // Update inbox item status
+    const { error: updateError } = await supabase
+      .from('inbox_items')
+      .update({ status: 'confirmed' as InboxStatus })
+      .eq('id', inboxItemId);
+
+    if (updateError) throw updateError;
+
+    return transaction;
+  },
+
+  // Reject inbox item
+  rejectInboxItem: async (inboxItemId: string) => {
+    const { error } = await supabase
+      .from('inbox_items')
+      .update({ status: 'rejected' as InboxStatus })
+      .eq('id', inboxItemId);
+
+    if (error) throw error;
+  },
+
+  // Update inbox item
+  updateInboxItem: async (inboxItemId: string, updates: Partial<InboxItem>) => {
+    const { data, error } = await supabase
+      .from('inbox_items')
+      .update(updates)
+      .eq('id', inboxItemId)
+      .select()
+      .maybeSingle();
+
+    if (error) throw error;
+    return data;
+  },
+
+  // Get dashboard summary
+  getDashboardSummary: async (userId: string, month: string): Promise<DashboardSummary> => {
+    const startDate = `${month}-01`;
+    const endDate = `${month}-31`;
+
+    // Get transactions for the month
+    const { data: transactions, error: transError } = await supabase
+      .from('transactions')
+      .select('amount, type')
+      .eq('user_id', userId)
+      .gte('date', startDate)
+      .lte('date', endDate);
+
+    if (transError) throw transError;
+
+    // Calculate totals
+    const totalSpent = transactions
+      ?.filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + Math.abs(t.amount), 0) || 0;
+
+    const totalIncome = transactions
+      ?.filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + t.amount, 0) || 0;
+
+    // Get pending inbox items count
+    const { count: pendingCount, error: inboxError } = await supabase
+      .from('inbox_items')
+      .select('id', { count: 'exact' })
+      .eq('user_id', userId)
+      .eq('status', 'pending');
+
+    if (inboxError) throw inboxError;
+
+    return {
+      totalSpent,
+      totalIncome,
+      availableAmount: totalIncome - totalSpent,
+      pendingInboxItems: pendingCount || 0,
+    };
+  },
+
+  // Get recent transactions for dashboard
+  getRecentTransactions: async (userId: string, limit = 10): Promise<RecentTransaction[]> => {
+    const { data, error } = await supabase
+      .from('transactions')
+      .select(`
+        id,
+        description,
+        amount,
+        date,
+        category:categories(name, color, icon)
+      `)
+      .eq('user_id', userId)
+      .order('date', { ascending: false })
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+
+    return data?.map(t => ({
+      id: t.id,
+      description: t.description,
+      amount: t.amount,
+      date: t.date,
+      category: t.category ? {
+        name: t.category.name,
+        color: t.category.color,
+        icon: t.category.icon,
+      } : undefined,
+    })) || [];
+  },
 
   // Get goals with progress using the view
   getGoalsWithProgress: async (userId: string, categoryId?: string): Promise<GoalWithProgress[]> => {

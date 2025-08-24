@@ -8,6 +8,9 @@ import { CategoryPane } from '../components/CategoryPane';
 import { InspectorPane } from '../components/InspectorPane';
 import { TransactionModal } from '../components/TransactionModal';
 import { OnboardingSteps } from '../components/OnboardingSteps';
+import { SmartInbox } from '../components/SmartInbox';
+import { DashboardCards } from '../components/DashboardCards';
+import { RecentTransactions } from '../components/RecentTransactions';
 import { initializeUserBudget } from '../utils/dbInitializer';
 // import { GoalOverview } from '../components/GoalOverview';
 // import { ReportsSection } from '../components/ReportsSection';
@@ -23,6 +26,7 @@ function DashboardContent() {
   const [lastSyncTime] = React.useState(new Date());
   const [isInitializing, setIsInitializing] = React.useState(true);
   const [initializationError, setInitializationError] = React.useState<string>('');
+  const [dashboardRefreshTrigger, setDashboardRefreshTrigger] = React.useState(0);
 
   // Calculate header height
   React.useEffect(() => {
@@ -88,6 +92,13 @@ function DashboardContent() {
   const handleTransactionSuccess = () => {
     // Refresh budget data after successful transaction
     refreshBudget();
+    setDashboardRefreshTrigger(prev => prev + 1);
+  };
+
+  const handleInboxTransactionConfirmed = () => {
+    // Refresh both budget and dashboard data
+    refreshBudget();
+    setDashboardRefreshTrigger(prev => prev + 1);
   };
 
   const formatMonthYear = (date: Date) => {
@@ -222,13 +233,30 @@ function DashboardContent() {
             )}
 
             {/* Main Layout with Grid */}
-            <BudgetLayout headerHeight={headerHeight}>
-              {/* Left Column - Category Pane */}
-              <CategoryPane currentDate={currentDate} />
-              
-              {/* Right Column - Inspector Pane */}
-              <InspectorPane headerHeight={headerHeight} />
-            </BudgetLayout>
+            <div className="space-y-6">
+              {/* Dashboard Cards */}
+              <DashboardCards 
+                currentDate={currentDate} 
+                refreshTrigger={dashboardRefreshTrigger} 
+              />
+
+              {/* Smart Inbox */}
+              <SmartInbox onTransactionConfirmed={handleInboxTransactionConfirmed} />
+
+              {/* Two Column Layout for Recent Transactions and Budget Details */}
+              <div className="grid lg:grid-cols-2 gap-6">
+                {/* Recent Transactions */}
+                <RecentTransactions refreshTrigger={dashboardRefreshTrigger} />
+                
+                {/* Budget Overview - Simplified */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Orçamento por Categoria</h3>
+                  <p className="text-gray-500 text-center py-8">
+                    Funcionalidade completa em breve...
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </main>
 
